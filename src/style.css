@@ -1,0 +1,222 @@
+@import "tailwindcss";
+
+:root {
+  color: #1c1917;
+  background: #f5f5f4;
+  font-family: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at top, rgba(15, 118, 110, 0.08), transparent 28%),
+    linear-gradient(180deg, #fafaf9 0%, #f5f5f4 100%);
+}
+
+a {
+  color: inherit;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.toolbar-button {
+  @apply inline-flex items-center gap-2 rounded-[20px] border border-stone-300 bg-white px-4 py-2 text-sm text-stone-700 shadow-sm transition hover:-translate-y-0.5 hover:border-stone-400 hover:bg-stone-50;
+}
+
+.toolbar-button--solid {
+  @apply border-stone-900 bg-stone-900 text-white hover:bg-stone-800;
+}
+
+.toolbar-button--danger {
+  @apply text-rose-700 hover:border-rose-300 hover:bg-rose-50;
+}
+
+.toolbar-chip {
+  @apply inline-flex items-center gap-2 rounded-[16px] border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:border-stone-400 hover:bg-stone-50;
+}
+
+.toolbar-chip:disabled {
+  @apply cursor-not-allowed opacity-45 hover:border-stone-300 hover:bg-white;
+}
+
+.toolbar-chip--active {
+  @apply border-transparent bg-stone-900 text-white;
+}
+
+.toolbar-menu-item {
+  @apply flex w-full items-center gap-2 rounded-[18px] px-3 py-2 text-left text-sm text-stone-700 transition hover:bg-stone-100;
+}
+
+.field-shell {
+  @apply flex flex-col gap-2 rounded-[22px] border border-stone-200 bg-stone-50 px-4 py-3 transition focus-within:border-teal-700 focus-within:bg-white;
+}
+
+.field-label {
+  @apply text-xs font-semibold tracking-[0.18em] text-stone-400 uppercase;
+}
+
+.field-input {
+  @apply w-full border-none bg-transparent p-0 text-sm text-stone-800 outline-none placeholder:text-stone-400;
+}
+
+.workbench-panel {
+  @apply flex h-full min-h-0 flex-col overflow-hidden rounded-[30px] border border-stone-200/80 bg-white/68 shadow-[0_18px_45px_rgba(12,10,9,0.05)] backdrop-blur-sm;
+}
+
+.workbench-panel__header {
+  @apply flex min-h-18 items-center justify-between gap-4 border-b border-stone-200/80 px-4 py-4 lg:px-6;
+}
+
+.workbench-panel__body {
+  @apply min-h-0 flex-1 overflow-auto;
+}
+
+.workbench-panel__eyebrow {
+  @apply text-xs font-semibold tracking-[0.22em] text-stone-500 uppercase;
+}
+
+.resume-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  box-sizing: border-box;
+  background: white;
+  color: #1c1917;
+  padding: var(--resume-page-margin);
+  font-size: var(--resume-font-size);
+  line-height: var(--resume-line-height);
+  box-shadow:
+    0 30px 60px rgba(12, 10, 9, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  transition: all 0.3s ease;
+}
+
+.resume-html-frame {
+  display: block;
+  width: 210mm;
+  min-height: 297mm;
+  border: none;
+  background: white;
+  border-radius: 24px;
+  box-shadow:
+    0 30px 60px rgba(12, 10, 9, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+}
+
+.resume-html-frame--print {
+  box-shadow: none;
+}
+
+.resume-sheet--minimal {
+  font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+}
+
+.resume-sheet--modern {
+  font-family: "Avenir Next", "Noto Sans SC", sans-serif;
+  background:
+    linear-gradient(180deg, rgba(15, 118, 110, 0.05), transparent 120px),
+    white;
+}
+
+.resume-sheet--classic-sidebar {
+  font-family: "Source Serif 4", "Noto Serif SC", Georgia, serif;
+}
+
+.resume-sheet--print {
+  box-shadow: none;
+}
+
+.resume-header {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.resume-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, var(--resume-accent), rgba(15, 23, 42, 0.08));
+}
+
+.resume-section {
+  break-inside: avoid;
+}
+
+.resume-section-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.82rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--resume-accent);
+  font-weight: 700;
+}
+
+.resume-section-title::after {
+  content: "";
+  width: 42px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.45;
+}
+
+.resume-markdown {
+  color: #44403c;
+}
+
+.resume-markdown p,
+.resume-markdown ul,
+.resume-markdown ol {
+  margin: 0;
+}
+
+.resume-markdown ul,
+.resume-markdown ol {
+  padding-left: 1.25rem;
+}
+
+.resume-markdown > * + * {
+  margin-top: 0.4rem;
+}
+
+.break-inside-avoid {
+  break-inside: avoid;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body {
+    background: white;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  .resume-sheet {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .resume-html-frame {
+    width: 210mm;
+    min-height: 297mm;
+    box-shadow: none;
+  }
+}

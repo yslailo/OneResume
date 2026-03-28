@@ -1,0 +1,383 @@
+import type {
+  BasicsSection,
+  ResumeDocument,
+  ResumeItem,
+  ResumeSection,
+  ResumeStyle,
+  ResumeTemplateId,
+  SectionType,
+} from '@/domain/types'
+import { RESUME_SCHEMA_VERSION } from '@/domain/types'
+
+const SECTION_LABELS: Record<SectionType, string> = {
+  education: '教育背景',
+  work: '工作经历',
+  project: '项目经验',
+  skills: '专业技能',
+  custom: '自定义模块',
+}
+
+const DEFAULT_TEMPLATE_ID: ResumeTemplateId = 'minimal'
+
+export function createId(prefix = 'id'): string {
+  return `${prefix}-${crypto.randomUUID()}`
+}
+
+export function createDefaultStyle(): ResumeStyle {
+  return {
+    accentColor: '#0f766e',
+    fontFamily: 'sans',
+    baseFontSize: 14,
+    lineHeight: 1.65,
+    pageMargin: 20,
+    sectionGap: 18,
+    showPhoto: true,
+    photoPlacement: 'right',
+  }
+}
+
+export function createEmptyBasics(): BasicsSection {
+  return {
+    name: '',
+    title: '',
+    email: '',
+    phone: '',
+    location: '',
+    website: '',
+    github: '',
+    summary: '',
+  }
+}
+
+export function createEmptyItem(overrides: Partial<ResumeItem> = {}): ResumeItem {
+  return {
+    id: createId('item'),
+    title: '',
+    subtitle: '',
+    startDate: '',
+    endDate: '',
+    location: '',
+    descriptionMarkdown: '',
+    highlights: [],
+    ...overrides,
+  }
+}
+
+export function createDefaultSection(type: SectionType, overrides: Partial<ResumeSection> = {}): ResumeSection {
+  return {
+    id: createId(`section-${type}`),
+    type,
+    label: SECTION_LABELS[type],
+    visible: true,
+    items: [],
+    ...overrides,
+  }
+}
+
+export function createDefaultSections(): ResumeSection[] {
+  return [
+    createDefaultSection('education'),
+    createDefaultSection('work'),
+    createDefaultSection('project'),
+    createDefaultSection('skills'),
+    createDefaultSection('custom', { visible: false, label: '附加信息' }),
+  ]
+}
+
+export function createEmptyResume(title = '未命名简历'): ResumeDocument {
+  const now = new Date().toISOString()
+  const sections = createDefaultSections()
+
+  return {
+    id: createId('resume'),
+    version: RESUME_SCHEMA_VERSION,
+    title,
+    templateId: DEFAULT_TEMPLATE_ID,
+    sourceFormat: 'structured',
+    previewMode: 'structured',
+    rawSourceHtml: null,
+    style: createDefaultStyle(),
+    basics: createEmptyBasics(),
+    sectionOrder: sections.map((section) => section.id),
+    sections,
+    photoAssetId: null,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export function createExampleResume(): ResumeDocument {
+  const resume = createEmptyResume('产品设计工程师')
+
+  resume.basics = {
+    name: '林若川',
+    title: '前端工程师 / 简历体验设计爱好者',
+    email: 'ruochuan@example.com',
+    phone: '138-0000-0000',
+    location: '上海',
+    website: 'https://portfolio.example.com',
+    github: 'https://github.com/example',
+    summary:
+      '专注于信息密集型产品与编辑体验设计，擅长把复杂流程压缩成清晰、高效、可维护的交互。近年来持续投入在本地优先、可打印文档和性能优化方向。',
+  }
+
+  const education = resume.sections.find((section) => section.type === 'education')
+  const work = resume.sections.find((section) => section.type === 'work')
+  const project = resume.sections.find((section) => section.type === 'project')
+  const skills = resume.sections.find((section) => section.type === 'skills')
+  const custom = resume.sections.find((section) => section.type === 'custom')
+
+  if (education) {
+    education.items = [
+      createEmptyItem({
+        title: '同济大学',
+        subtitle: '软件工程 · 本科',
+        startDate: '2016.09',
+        endDate: '2020.06',
+        location: '上海',
+        descriptionMarkdown: '- 主修软件工程、交互设计与信息可视化\n- 连续两年获得校级奖学金',
+      }),
+    ]
+  }
+
+  if (work) {
+    work.items = [
+      createEmptyItem({
+        title: '云帆科技',
+        subtitle: '高级前端工程师',
+        startDate: '2022.03',
+        endDate: '至今',
+        location: '上海',
+        descriptionMarkdown:
+          '- 负责在线文档与表单工作台的架构设计，首屏渲染时间降低 **34%**\n- 主导本地优先缓存方案，离线编辑稳定性显著提升\n- 设计打印视图系统，支撑 PDF 导出与 A4 精确预览',
+      }),
+      createEmptyItem({
+        title: '北辰互动',
+        subtitle: '前端工程师',
+        startDate: '2020.07',
+        endDate: '2022.02',
+        location: '杭州',
+        descriptionMarkdown:
+          '- 参与企业级中后台系统重构，统一组件规范与样式变量\n- 推动 Markdown 文档编辑器在多个业务线复用',
+      }),
+    ]
+  }
+
+  if (project) {
+    project.items = [
+      createEmptyItem({
+        title: 'OneResume 本地优先简历编辑器',
+        subtitle: '个人项目',
+        startDate: '2026.03',
+        endDate: '进行中',
+        location: '远程',
+        descriptionMarkdown:
+          '- 以 `Vue 3 + Pinia + Tailwind` 构建纯前端简历生成器\n- 实现 JSON 工程导入导出、Markdown 兼容导入与打印导出闭环\n- 模板层与数据层分离，支持多模板无缝切换',
+      }),
+    ]
+  }
+
+  if (skills) {
+    skills.items = [
+      createEmptyItem({
+        title: '前端技术栈',
+        subtitle: 'Vue / TypeScript / Vite / Tailwind',
+        descriptionMarkdown: '- 熟悉组件设计、状态管理、打印样式与性能优化',
+      }),
+      createEmptyItem({
+        title: '产品能力',
+        subtitle: '信息架构 / 交互设计 / 文档体验',
+        descriptionMarkdown: '- 擅长将复杂操作压缩为低心智负担的工作流',
+      }),
+    ]
+  }
+
+  if (custom) {
+    custom.visible = true
+    custom.label = '附加信息'
+    custom.items = [
+      createEmptyItem({
+        title: '语言能力',
+        subtitle: '中文 / 英文',
+        descriptionMarkdown: '- 英文可作为工作语言\n- 可独立撰写中英文简历与项目材料',
+      }),
+    ]
+  }
+
+  return touchResume(resume)
+}
+
+export function touchResume(resume: ResumeDocument): ResumeDocument {
+  return {
+    ...resume,
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+export function sortSectionsByOrder(resume: ResumeDocument): ResumeSection[] {
+  const map = new Map(resume.sections.map((section) => [section.id, section]))
+  return resume.sectionOrder.map((id) => map.get(id)).filter(Boolean) as ResumeSection[]
+}
+
+export function ensureSectionOrder(sections: ResumeSection[], sectionOrder?: string[]): string[] {
+  const ids = sections.map((section) => section.id)
+  const preferred = sectionOrder?.filter((id) => ids.includes(id)) ?? []
+  const missing = ids.filter((id) => !preferred.includes(id))
+  return [...preferred, ...missing]
+}
+
+export function moveSectionOrder(sectionOrder: string[], sectionId: string, targetIndex: number): string[] {
+  const currentIndex = sectionOrder.indexOf(sectionId)
+  if (currentIndex === -1) {
+    return sectionOrder
+  }
+
+  const boundedTargetIndex = Math.max(0, Math.min(targetIndex, sectionOrder.length - 1))
+  if (boundedTargetIndex === currentIndex) {
+    return sectionOrder
+  }
+
+  const next = [...sectionOrder]
+  next.splice(currentIndex, 1)
+  next.splice(boundedTargetIndex, 0, sectionId)
+  return next
+}
+
+function isSectionType(value: unknown): value is SectionType {
+  return typeof value === 'string' && ['education', 'work', 'project', 'skills', 'custom'].includes(value)
+}
+
+export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDocument {
+  const fallback = createEmptyResume(typeof input.title === 'string' ? input.title : '导入简历')
+  const sectionsInput = Array.isArray(input.sections) ? input.sections : fallback.sections
+  const sections = sectionsInput.map((sectionLike) => {
+    const type = isSectionType(sectionLike.type) ? sectionLike.type : 'custom'
+    const defaultSection = createDefaultSection(type)
+    const items = Array.isArray(sectionLike.items)
+      ? sectionLike.items.map((item) =>
+          createEmptyItem({
+            ...item,
+            id: typeof item.id === 'string' ? item.id : createId('item'),
+            title: typeof item.title === 'string' ? item.title : '',
+            subtitle: typeof item.subtitle === 'string' ? item.subtitle : '',
+            startDate: typeof item.startDate === 'string' ? item.startDate : '',
+            endDate: typeof item.endDate === 'string' ? item.endDate : '',
+            location: typeof item.location === 'string' ? item.location : '',
+            descriptionMarkdown:
+              typeof item.descriptionMarkdown === 'string' ? item.descriptionMarkdown : '',
+            highlights: Array.isArray(item.highlights)
+              ? item.highlights.filter((entry): entry is string => typeof entry === 'string')
+              : [],
+          }),
+        )
+      : []
+
+    return {
+      ...defaultSection,
+      ...sectionLike,
+      id: typeof sectionLike.id === 'string' ? sectionLike.id : defaultSection.id,
+      type,
+      label: typeof sectionLike.label === 'string' ? sectionLike.label : defaultSection.label,
+      visible: typeof sectionLike.visible === 'boolean' ? sectionLike.visible : true,
+      items,
+    }
+  })
+
+  const basicsInput = input.basics ?? {}
+  const basics: BasicsSection = {
+    ...createEmptyBasics(),
+    ...basicsInput,
+  }
+
+  return {
+    ...fallback,
+    ...input,
+    id: typeof input.id === 'string' ? input.id : fallback.id,
+    version: RESUME_SCHEMA_VERSION,
+    templateId:
+      input.templateId === 'minimal' || input.templateId === 'modern' || input.templateId === 'classic-sidebar'
+        ? input.templateId
+        : fallback.templateId,
+    sourceFormat: input.sourceFormat === 'html' ? 'html' : 'structured',
+    previewMode:
+      (input.previewMode === 'source-html' || input.previewMode === 'source-html-sync') && input.sourceFormat === 'html'
+        ? input.previewMode
+        : 'structured',
+    rawSourceHtml: typeof input.rawSourceHtml === 'string' ? input.rawSourceHtml : null,
+    style: {
+      ...createDefaultStyle(),
+      ...(input.style ?? {}),
+      fontFamily: input.style?.fontFamily === 'serif' ? 'serif' : 'sans',
+      showPhoto: typeof input.style?.showPhoto === 'boolean' ? input.style.showPhoto : true,
+      photoPlacement: input.style?.photoPlacement === 'left' ? 'left' : 'right',
+    },
+    basics,
+    sections,
+    sectionOrder: ensureSectionOrder(sections, input.sectionOrder),
+    photoAssetId: typeof input.photoAssetId === 'string' ? input.photoAssetId : null,
+    createdAt: typeof input.createdAt === 'string' ? input.createdAt : fallback.createdAt,
+    updatedAt: typeof input.updatedAt === 'string' ? input.updatedAt : fallback.updatedAt,
+  }
+}
+
+export function createImportedResume(
+  imported: Partial<ResumeDocument>,
+  existingTitles: string[],
+): ResumeDocument {
+  const migrated = migrateResumeDocument(imported)
+  const now = new Date().toISOString()
+  const uniqueTitle = createUniqueTitle(migrated.title, existingTitles)
+
+  return {
+    ...migrated,
+    id: createId('resume'),
+    title: uniqueTitle,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+export function createUniqueTitle(title: string, existingTitles: string[]): string {
+  if (!existingTitles.includes(title)) {
+    return title
+  }
+
+  let counter = 2
+  while (existingTitles.includes(`${title} (${counter})`)) {
+    counter += 1
+  }
+
+  return `${title} (${counter})`
+}
+
+export function sectionLabelForType(type: SectionType): string {
+  return SECTION_LABELS[type]
+}
+
+export function normalizeSectionHeading(heading: string): SectionType | null {
+  const normalized = heading.trim().toLowerCase()
+  const mapping: Record<string, SectionType> = {
+    basics: 'custom',
+    'basic info': 'custom',
+    '个人信息': 'custom',
+    '教育背景': 'education',
+    education: 'education',
+    '工作经历': 'work',
+    '实习经历': 'work',
+    '实习经验': 'work',
+    experience: 'work',
+    work: 'work',
+    '项目经验': 'project',
+    '项目经历': 'project',
+    projects: 'project',
+    project: 'project',
+    '专业技能': 'skills',
+    '技能特长': 'skills',
+    skills: 'skills',
+    '自定义模块': 'custom',
+    '附加信息': 'custom',
+    custom: 'custom',
+  }
+
+  return mapping[normalized] ?? null
+}
