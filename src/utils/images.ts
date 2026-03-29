@@ -115,3 +115,21 @@ export async function dataUrlToPhotoAsset(dataUrl: string): Promise<StoredPhotoA
     height: image.height,
   }
 }
+
+export async function blobToPhotoAsset(blob: Blob): Promise<StoredPhotoAsset> {
+  const objectUrl = URL.createObjectURL(blob)
+
+  try {
+    const image = await loadImage(objectUrl)
+
+    return {
+      id: createId('photo'),
+      blob,
+      createdAt: new Date().toISOString(),
+      width: image.width,
+      height: image.height,
+    }
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}

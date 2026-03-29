@@ -6,6 +6,8 @@ import ResumePreviewPane from '@/components/ResumePreviewPane.vue'
 import ResumeToolbar from '@/components/ResumeToolbar.vue'
 import { useWorkspaceStore } from '@/stores/workspace'
 
+type ExportFormat = 'pdf' | 'json' | 'html'
+
 const router = useRouter()
 const workspace = useWorkspaceStore()
 const photoInputRef = ref<HTMLInputElement | null>(null)
@@ -44,7 +46,7 @@ async function resetCurrentResume(): Promise<void> {
 }
 
 async function clearAllLocalData(): Promise<void> {
-  if (window.confirm('这会清空当前浏览器里的全部本地简历数据，确定继续吗？')) {
+  if (window.confirm('这会清空当前浏览器中的全部本地简历数据，确定继续吗？')) {
     await workspace.clearAllLocalData()
   }
 }
@@ -85,6 +87,31 @@ async function handlePhotoFile(event: Event): Promise<void> {
   }
   input.value = ''
 }
+
+async function handleImportFile(file: File): Promise<void> {
+  try {
+    await workspace.importResumeFile(file)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '导入失败，请重试'
+    workspace.setNotice(message)
+  }
+}
+
+async function handleExport(format: ExportFormat): Promise<void> {
+  if (format === 'pdf') {
+    openPrintView()
+    return
+  }
+
+  if (format === 'json') {
+    await workspace.exportCurrentJson()
+    return
+  }
+
+  if (format === 'html') {
+    await workspace.exportCurrentHtml()
+  }
+}
 </script>
 
 <template>
@@ -102,14 +129,8 @@ async function handlePhotoFile(event: Event): Promise<void> {
       @delete-resume="deleteCurrentResume"
       @reset-resume="resetCurrentResume"
       @sync-preview="syncStructuredPreview"
-      @export-format="
-        (format) => {
-          if (format === 'pdf') openPrintView()
-          else if (format === 'json') workspace.exportCurrentJson()
-          else if (format === 'html') workspace.exportCurrentHtml()
-        }
-      "
-      @import-file="workspace.importResumeFile"
+      @export-format="handleExport"
+      @import-file="handleImportFile"
       @update-template="workspace.updateTemplate"
       @update-preview-mode="workspace.updatePreviewMode"
       @update-style="workspace.updateStyle"

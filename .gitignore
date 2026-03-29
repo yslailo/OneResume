@@ -36,3 +36,6 @@ Desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# Local notes / docs
+docs/

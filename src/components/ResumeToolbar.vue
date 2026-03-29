@@ -8,6 +8,8 @@ interface ResumeOption {
   title: string
 }
 
+type ExportFormat = 'pdf' | 'json' | 'html'
+
 const props = defineProps<{
   resumes: ResumeOption[]
   currentResume: ResumeDocument | null
@@ -24,7 +26,7 @@ const emit = defineEmits<{
   (event: 'delete-resume'): void
   (event: 'reset-resume'): void
   (event: 'sync-preview'): void
-  (event: 'export-format', format: 'pdf' | 'json' | 'html'): void
+  (event: 'export-format', format: ExportFormat): void
   (event: 'import-file', file: File): void
   (event: 'update-template', templateId: ResumeTemplateId): void
   (event: 'update-preview-mode', previewMode: ResumePreviewMode): void
@@ -39,6 +41,13 @@ const titleModel = computed({
   get: () => props.currentResume?.title ?? '',
   set: (value: string) => emit('rename-resume', value),
 })
+
+const templateOptions: Array<{ id: ResumeTemplateId; label: string }> = [
+  { id: 'minimal', label: '极简' },
+  { id: 'modern', label: '现代' },
+  { id: 'classic-sidebar', label: '侧栏' },
+  { id: 'classic-blue', label: '蓝线' },
+]
 
 function openImport(): void {
   importInputRef.value?.click()
@@ -76,7 +85,7 @@ function handleFileChange(event: Event): void {
             </div>
             <div class="min-w-0">
               <div class="text-sm font-semibold tracking-[0.18em] text-stone-900 uppercase">OneResume</div>
-              <div class="text-xs text-stone-500">本地优先简历生成器</div>
+              <div class="text-xs text-stone-500">本地优先简历工作台</div>
             </div>
           </div>
 
@@ -115,7 +124,7 @@ function handleFileChange(event: Event): void {
               导出
               <ChevronDown class="h-4 w-4" />
             </summary>
-            <div class="absolute right-0 top-[calc(100%+10px)] z-30 min-w-48 rounded-[24px] border border-stone-200 bg-white p-2 shadow-xl">
+            <div class="absolute right-0 top-[calc(100%+10px)] z-30 min-w-52 rounded-[24px] border border-stone-200 bg-white p-2 shadow-xl">
               <button type="button" class="toolbar-menu-item" @click="emit('export-format', 'pdf')">
                 <Printer class="h-4 w-4" />
                 导出 PDF
@@ -182,15 +191,15 @@ function handleFileChange(event: Event): void {
 
           <span class="text-xs font-semibold tracking-[0.24em] text-stone-500 uppercase">模板</span>
           <button
-            v-for="templateId in ['minimal', 'modern', 'classic-sidebar'] as ResumeTemplateId[]"
-            :key="templateId"
+            v-for="template in templateOptions"
+            :key="template.id"
             class="toolbar-chip"
-            :class="{ 'toolbar-chip--active': currentResume?.templateId === templateId }"
+            :class="{ 'toolbar-chip--active': currentResume?.templateId === template.id }"
             :disabled="currentResume?.previewMode === 'source-html'"
             :title="currentResume?.previewMode === 'source-html' ? '原模板预览模式下不使用站内模板' : ''"
-            @click="emit('update-template', templateId)"
+            @click="emit('update-template', template.id)"
           >
-            {{ templateId }}
+            {{ template.label }}
           </button>
         </div>
 
@@ -311,7 +320,7 @@ function handleFileChange(event: Event): void {
       <input
         ref="importInputRef"
         type="file"
-        accept=".json,.md,.markdown,.txt,.html,.htm,text/markdown,text/plain,text/html,application/json"
+        accept=".json,.md,.markdown,.txt,.html,.htm,.pdf,text/markdown,text/plain,text/html,application/json,application/pdf"
         class="hidden"
         @change="handleFileChange"
       />

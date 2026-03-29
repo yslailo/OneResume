@@ -1,6 +1,6 @@
 export const RESUME_SCHEMA_VERSION = 1
 
-export type ResumeTemplateId = 'minimal' | 'modern' | 'classic-sidebar'
+export type ResumeTemplateId = 'minimal' | 'modern' | 'classic-sidebar' | 'classic-blue'
 export type FontFamilyOption = 'sans' | 'serif'
 export type PhotoPlacement = 'left' | 'right'
 export type SectionType = 'education' | 'work' | 'project' | 'skills' | 'custom'

@@ -95,10 +95,9 @@ const htmlShellStyle = computed(() => ({
       </template>
 
       <template v-else>
-        <div
-          class="flex min-h-full items-start justify-center rounded-[28px] bg-[radial-gradient(circle_at_top,_rgba(15,118,110,0.08),_transparent_35%),linear-gradient(180deg,#f5f5f4_0%,#ece7e1_100%)] p-4 lg:p-8"
-        >
-          <div class="transition-transform duration-300" :style="scaleStyle">
+        <div class="preview-stage">
+          <div class="preview-stage__halo" />
+          <div class="preview-stage__sheet transition-transform duration-300" :style="scaleStyle">
             <ResumeDocumentView :resume="resume" :photo-url="photoUrl" />
           </div>
         </div>

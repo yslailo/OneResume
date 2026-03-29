@@ -2,20 +2,23 @@ import { toString } from 'mdast-util-to-string'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import type { Content, Heading, ListItem, Root, RootContent } from 'mdast'
-import { createDefaultSection, createEmptyItem, createImportedResume, normalizeSectionHeading, sortSectionsByOrder } from '@/domain/resume'
+
+import {
+  createDefaultSection,
+  createEmptyItem,
+  createImportedResume,
+  normalizeSectionHeading,
+  sortSectionsByOrder,
+} from '@/domain/resume'
 import type { ResumeDocument, ResumeSection, SectionType } from '@/domain/types'
 
 interface MarkdownExportOptions {
-  photoDataUrl?: string
+  photoMarkdownPath?: string
   preferredHtml?: string | null
 }
 
-function renderImageForMarkdown(src: string, alt: string): string {
-  const safeAlt = alt.replace(/"/g, '&quot;')
-  if (/^data:image\//i.test(src)) {
-    return `<img src="${src}" alt="${safeAlt}" />`
-  }
-  return `![${alt}](${src})`
+interface HtmlImportOptions {
+  preserveSourceHtml?: boolean
 }
 
 function cleanText(value: string): string {
@@ -23,7 +26,11 @@ function cleanText(value: string): string {
 }
 
 function looksLikeHtmlDocument(markdown: string): boolean {
-  return /<h1[\s>]|<h2[\s>]|<div[\s>]|<p[\s>]|<ul[\s>]|<img[\s>]/i.test(markdown)
+  return /<h1[\s>]|<h2[\s>]|<div[\s>]|<p[\s>]|<ul[\s>]|<img[\s>]|<table[\s>]/i.test(markdown)
+}
+
+function renderAvatarMarkdown(photoMarkdownPath?: string): string | null {
+  return photoMarkdownPath ? `![头像](${photoMarkdownPath})` : null
 }
 
 function collectSectionElements(start: Element): Element[] {
@@ -64,16 +71,22 @@ function extractEmail(value: string): string {
 
 function extractLocation(value: string): string {
   const parts = value
-    .split(/[|·•]/)
+    .split(/[|·•路\\/]/)
     .map((part) => cleanText(part))
     .filter(Boolean)
+
   return parts.at(-1) ?? ''
 }
 
-function importResumeFromHtml(markdown: string, existingTitles: string[]): ResumeDocument {
+export function importResumeFromHtmlContent(
+  markdown: string,
+  existingTitles: string[],
+  options: HtmlImportOptions = {},
+): ResumeDocument {
   const parser = new DOMParser()
   const document = parser.parseFromString(markdown, 'text/html')
   const resume = createImportedResume({ title: 'HTML 导入简历' }, existingTitles)
+  const preserveSourceHtml = options.preserveSourceHtml ?? true
   const nameHeading = document.querySelector('h1')
   const sectionHeadings = Array.from(document.querySelectorAll('h2'))
   const introParagraphs = Array.from(document.querySelectorAll('p'))
@@ -82,12 +95,12 @@ function importResumeFromHtml(markdown: string, existingTitles: string[]): Resum
 
   resume.basics.name = siblingText(nameHeading)
   resume.title = resume.basics.name ? `${resume.basics.name}的简历` : resume.title
-  resume.sourceFormat = 'html'
-  resume.previewMode = 'source-html'
-  resume.rawSourceHtml = markdown
+  resume.sourceFormat = preserveSourceHtml ? 'html' : 'structured'
+  resume.previewMode = preserveSourceHtml ? 'source-html' : 'structured'
+  resume.rawSourceHtml = preserveSourceHtml ? markdown : null
 
   for (const line of introParagraphs.slice(0, 4)) {
-    if (!resume.basics.location && (line.includes('·') || line.includes('|'))) {
+    if (!resume.basics.location && (line.includes('路') || line.includes('|') || line.includes('·'))) {
       resume.basics.location = extractLocation(line)
     }
     if (!resume.basics.phone) {
@@ -113,7 +126,9 @@ function importResumeFromHtml(markdown: string, existingTitles: string[]): Resum
 
     if (type === 'education') {
       const headerDiv = elements.find((element) => element.tagName.toLowerCase() === 'div')
-      const spans = headerDiv ? Array.from(headerDiv.querySelectorAll('span')).map((node) => cleanText(node.textContent ?? '')) : []
+      const spans = headerDiv
+        ? Array.from(headerDiv.querySelectorAll('span')).map((node) => cleanText(node.textContent ?? ''))
+        : []
       const courseText = elements
         .filter((element) => element.tagName.toLowerCase() === 'p')
         .map((node) => cleanText(node.textContent ?? ''))
@@ -129,7 +144,9 @@ function importResumeFromHtml(markdown: string, existingTitles: string[]): Resum
       ]
     } else if (type === 'work') {
       const headerDiv = elements.find((element) => element.tagName.toLowerCase() === 'div')
-      const spans = headerDiv ? Array.from(headerDiv.querySelectorAll('span')).map((node) => cleanText(node.textContent ?? '')) : []
+      const spans = headerDiv
+        ? Array.from(headerDiv.querySelectorAll('span')).map((node) => cleanText(node.textContent ?? ''))
+        : []
       const paragraphs = elements.filter((element) => element.tagName.toLowerCase() === 'p')
       const role = cleanText(paragraphs[0]?.textContent ?? '')
       const extraParagraphs = paragraphs.slice(1).map((node) => cleanText(node.textContent ?? ''))
@@ -189,13 +206,18 @@ function importResumeFromHtml(markdown: string, existingTitles: string[]): Resum
       section.items =
         items.length > 0
           ? items
-          : [createEmptyItem({ descriptionMarkdown: elements.map((element) => cleanText(element.textContent ?? '')).join('\n') })]
+          : [
+              createEmptyItem({
+                descriptionMarkdown: elements.map((element) => cleanText(element.textContent ?? '')).join('\n'),
+              }),
+            ]
     } else if (type === 'skills') {
-      section.items = Array.from((elements.find((element) => /^(ul|ol)$/i.test(element.tagName)) ?? document.createElement('ul')).querySelectorAll('li')).map(
-        (item) =>
-          createEmptyItem({
-            descriptionMarkdown: cleanText(item.textContent ?? ''),
-          }),
+      section.items = Array.from(
+        (elements.find((element) => /^(ul|ol)$/i.test(element.tagName)) ?? document.createElement('ul')).querySelectorAll('li'),
+      ).map((item) =>
+        createEmptyItem({
+          descriptionMarkdown: cleanText(item.textContent ?? ''),
+        }),
       )
     } else {
       section.items = [
@@ -321,8 +343,7 @@ function extractItems(type: SectionType, nodes: RootContent[]): ResumeSection {
   let bufferedNodes: RootContent[] = []
 
   const flush = () => {
-    const content = nodesToMarkdown(bufferedNodes)
-    currentItem.descriptionMarkdown = content
+    currentItem.descriptionMarkdown = nodesToMarkdown(bufferedNodes)
     if (currentItem.title || currentItem.subtitle || currentItem.descriptionMarkdown) {
       items.push(currentItem)
     }
@@ -369,7 +390,9 @@ function extractItems(type: SectionType, nodes: RootContent[]): ResumeSection {
 
 function blockChildren(node: Element): Element[] {
   return Array.from(node.children).filter((child) =>
-    ['article', 'blockquote', 'div', 'h1', 'h2', 'h3', 'h4', 'img', 'li', 'ol', 'p', 'section', 'ul'].includes(child.tagName.toLowerCase()),
+    ['article', 'blockquote', 'div', 'h1', 'h2', 'h3', 'h4', 'img', 'li', 'ol', 'p', 'section', 'ul'].includes(
+      child.tagName.toLowerCase(),
+    ),
   )
 }
 
@@ -382,8 +405,15 @@ function inlineMarkdownFromNode(node: Node): string {
     return ''
   }
 
-  const content = Array.from(node.childNodes).map((child) => inlineMarkdownFromNode(child)).join('').trim()
   const tag = node.tagName.toLowerCase()
+  if (tag === 'img') {
+    return ''
+  }
+
+  const content = Array.from(node.childNodes)
+    .map((child) => inlineMarkdownFromNode(child))
+    .join('')
+    .trim()
 
   if (tag === 'strong' || tag === 'b') {
     return content ? `**${content}**` : ''
@@ -405,15 +435,6 @@ function inlineMarkdownFromNode(node: Node): string {
     return '\n'
   }
 
-  if (tag === 'img') {
-    const src = node.getAttribute('src')?.trim()
-    if (!src) {
-      return ''
-    }
-    const alt = node.getAttribute('alt')?.trim() || '图片'
-    return renderImageForMarkdown(src, alt)
-  }
-
   return content
 }
 
@@ -421,18 +442,14 @@ function blockToMarkdown(node: Element, depth = 0): string {
   const tag = node.tagName.toLowerCase()
   const children = blockChildren(node)
 
+  if (tag === 'img') {
+    return ''
+  }
+
   if (tag === 'h1') return `# ${cleanText(node.textContent ?? '')}`
   if (tag === 'h2') return `## ${cleanText(node.textContent ?? '')}`
   if (tag === 'h3') return `### ${cleanText(node.textContent ?? '')}`
   if (tag === 'h4') return `#### ${cleanText(node.textContent ?? '')}`
-  if (tag === 'img') {
-    const src = node.getAttribute('src')?.trim()
-    if (!src) {
-      return ''
-    }
-    const alt = node.getAttribute('alt')?.trim() || '图片'
-    return renderImageForMarkdown(src, alt)
-  }
 
   if (tag === 'ul' || tag === 'ol') {
     return Array.from(node.children)
@@ -493,17 +510,14 @@ function exportHtmlToMarkdown(html: string): string {
   return blocks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
-export function exportResumeToMarkdown(resume: ResumeDocument, options: MarkdownExportOptions = {}): string {
-  if (options.preferredHtml) {
-    return exportHtmlToMarkdown(options.preferredHtml)
-  }
-
+function exportStructuredResumeToMarkdown(resume: ResumeDocument, photoMarkdownPath?: string): string {
   const sections = sortSectionsByOrder(resume).filter((section) => section.visible && section.items.length > 0)
   const title = resume.basics.name || resume.title || '未命名简历'
   const blocks: string[] = [`# ${title}`]
 
-  if (resume.style.showPhoto && options.photoDataUrl) {
-    blocks.push(renderImageForMarkdown(options.photoDataUrl, '头像'))
+  const avatarMarkdown = resume.style.showPhoto ? renderAvatarMarkdown(photoMarkdownPath) : null
+  if (avatarMarkdown) {
+    blocks.push(avatarMarkdown)
   }
 
   const metaLines = [
@@ -530,13 +544,10 @@ export function exportResumeToMarkdown(resume: ResumeDocument, options: Markdown
     section.items.forEach((item) => {
       if (section.type === 'skills') {
         const skillText = (item.descriptionMarkdown || item.title).trim()
-        if (skillText) {
-          if (/^[-*]\s/m.test(skillText)) {
-            blocks.push(skillText)
-          } else {
-            blocks.push(`- ${skillText}`)
-          }
+        if (!skillText) {
+          return
         }
+        blocks.push(/^[-*]\s/m.test(skillText) ? skillText : `- ${skillText}`)
         return
       }
 
@@ -564,9 +575,22 @@ export function exportResumeToMarkdown(resume: ResumeDocument, options: Markdown
   return blocks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
+export function exportResumeToMarkdown(resume: ResumeDocument, options: MarkdownExportOptions = {}): string {
+  if (options.preferredHtml) {
+    const blocks = [
+      resume.style.showPhoto ? renderAvatarMarkdown(options.photoMarkdownPath) : null,
+      exportHtmlToMarkdown(options.preferredHtml),
+    ].filter(Boolean)
+
+    return blocks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim()
+  }
+
+  return exportStructuredResumeToMarkdown(resume, options.photoMarkdownPath)
+}
+
 export function importResumeFromMarkdown(markdown: string, existingTitles: string[]): ResumeDocument {
   if (looksLikeHtmlDocument(markdown)) {
-    return importResumeFromHtml(markdown, existingTitles)
+    return importResumeFromHtmlContent(markdown, existingTitles)
   }
 
   const root = unified().use(remarkParse).parse(markdown) as Root

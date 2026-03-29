@@ -16,16 +16,16 @@ import type {
   ResumeExportFile,
   ResumeItem,
   ResumePreviewMode,
-  SectionType,
   ResumeStyle,
   ResumeTemplateId,
+  SectionType,
   WorkspaceIndex,
 } from '@/domain/types'
 import { clearAssets, deletePhotoAsset, getPhotoAsset, savePhotoAsset } from '@/persistence/assetsRepository'
-import { exportResumeToJson, importResumeFromJson } from '@/persistence/jsonExchange'
-import { photoAssetToDataUrl } from '@/persistence/jsonExchange'
-import { exportResumeToMarkdown, importResumeFromMarkdown } from '@/persistence/markdownExchange'
 import { renderResumeIntoHtmlTemplate } from '@/persistence/htmlTemplateSync'
+import { exportResumeToJson, importResumeFromJson } from '@/persistence/jsonExchange'
+import { exportResumeToMarkdown, importResumeFromMarkdown } from '@/persistence/markdownExchange'
+import { importResumeFromPdf } from '@/persistence/pdfExchange'
 import {
   clearWorkspaceStorage,
   deleteResume,
@@ -36,6 +36,7 @@ import {
 } from '@/persistence/workspaceRepository'
 import { downloadTextFile, sanitizeFileName } from '@/utils/files'
 import { cropImageToStandardPhoto, dataUrlToPhotoAsset } from '@/utils/images'
+import { downloadMarkdownPackage, extensionFromMimeType } from '@/utils/markdownPackageExport'
 
 type MobilePane = 'editor' | 'preview'
 
@@ -55,13 +56,23 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const orderedSections = computed(() =>
     currentResume.value ? sortSectionsByOrder(currentResume.value) : [],
   )
-  const hasSourceHtml = computed(() => Boolean(currentResume.value?.sourceFormat === 'html' && currentResume.value.rawSourceHtml))
+  const hasSourceHtml = computed(() =>
+    Boolean(currentResume.value?.sourceFormat === 'html' && currentResume.value.rawSourceHtml),
+  )
   const sourceHtmlHasLocalImage = computed(() =>
-    Boolean(currentResume.value?.rawSourceHtml && /<img[^>]+src=["'](?:[A-Za-z]:\\|file:\/\/\/)/i.test(currentResume.value.rawSourceHtml)),
+    Boolean(
+      currentResume.value?.rawSourceHtml &&
+        /<img[^>]+src=["'](?:[A-Za-z]:\\|file:\/\/\/)/i.test(currentResume.value.rawSourceHtml),
+    ),
   )
 
   function setNotice(message: string | null): void {
     notice.value = message
+  }
+
+  function createImportedTitle(fileName: string, existingTitles: string[]): string {
+    const baseName = fileName.replace(/\.[^/.]+$/u, '').trim() || '未命名简历'
+    return createUniqueTitle(baseName, existingTitles)
   }
 
   function setSaveError(error: unknown): void {
@@ -391,7 +402,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }
 
       const itemMap = new Map(section.items.map((item) => [item.id, item]))
-      section.items = nextIds.map((id) => itemMap.get(id)).filter((item): item is ResumeItem => Boolean(item))
+      section.items = nextIds
+        .map((id) => itemMap.get(id))
+        .filter((item): item is ResumeItem => Boolean(item))
     })
   }
 
@@ -415,6 +428,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const payload = JSON.parse(text) as ResumeExportFile
     const imported = importResumeFromJson(payload, resumes.value.map((resume) => resume.title))
     const next = imported.resume
+    next.title = createImportedTitle(file.name, resumes.value.map((resume) => resume.title))
 
     if (imported.photoDataUrl) {
       const photo = await dataUrlToPhotoAsset(imported.photoDataUrl)
@@ -426,25 +440,51 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     currentResumeId.value = next.id
     await persistAll(next)
     await hydrateCurrentPhoto()
-    setNotice('JSON 工程已导入')
+    setNotice('工程文件已导入')
   }
 
-  async function exportCurrentMarkdown(): Promise<void> {
+  async function exportCurrentMarkdownPackage(): Promise<void> {
     const current = currentResume.value
     if (!current) {
       return
     }
 
-    const photoAsset = current.photoAssetId ? await getPhotoAsset(current.photoAssetId) : undefined
-    const photoDataUrl = await photoAssetToDataUrl(photoAsset)
-    const preferredHtml =
+    const photoAsset =
+      current.style.showPhoto && current.photoAssetId ? await getPhotoAsset(current.photoAssetId) : undefined
+    const photoFileName = photoAsset ? `avatar.${extensionFromMimeType(photoAsset.blob.type)}` : null
+    const photoMarkdownPath = photoFileName ? `images/${photoFileName}` : undefined
+    const previewHtml =
       current.sourceFormat === 'html' && current.rawSourceHtml
         ? current.previewMode === 'source-html-sync'
-          ? renderResumeIntoHtmlTemplate(current.rawSourceHtml, current, photoDataUrl ?? null)
+          ? (() => {
+              const document = new DOMParser().parseFromString(current.rawSourceHtml, 'text/html')
+              document.body.innerHTML = renderResumeIntoHtmlTemplate(
+                current.rawSourceHtml,
+                current,
+                photoMarkdownPath ?? null,
+              )
+              return document.documentElement.outerHTML
+            })()
           : current.rawSourceHtml
         : null
-    const markdown = exportResumeToMarkdown(current, { photoDataUrl, preferredHtml })
-    downloadTextFile(markdown, `${sanitizeFileName(current.title || 'resume')}.md`, 'text/markdown;charset=utf-8')
+    const markdown = exportResumeToMarkdown(current, {
+      photoMarkdownPath,
+      preferredHtml: previewHtml,
+    })
+
+    await downloadMarkdownPackage({
+      markdown,
+      images: photoAsset && photoFileName ? [{ name: photoFileName, blob: photoAsset.blob }] : [],
+      extraFiles: previewHtml
+        ? [
+            {
+              name: 'resume.html',
+              content: previewHtml,
+            },
+          ]
+        : [],
+      zipFileName: `${sanitizeFileName(current.title || 'resume')}-markdown.zip`,
+    })
   }
 
   async function exportCurrentHtml(): Promise<void> {
@@ -453,17 +493,26 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return
     }
 
-    downloadTextFile(current.rawSourceHtml, `${sanitizeFileName(current.title || 'resume')}.html`, 'text/html;charset=utf-8')
+    downloadTextFile(
+      current.rawSourceHtml,
+      `${sanitizeFileName(current.title || 'resume')}.html`,
+      'text/html;charset=utf-8',
+    )
   }
 
   async function importMarkdownFile(file: File): Promise<void> {
     const markdown = await file.text()
     const next = importResumeFromMarkdown(markdown, resumes.value.map((resume) => resume.title))
+    next.title = createImportedTitle(file.name, resumes.value.map((resume) => resume.title))
     resumes.value.unshift(next)
     currentResumeId.value = next.id
     await persistAll(next)
     await hydrateCurrentPhoto()
-    setNotice(next.sourceFormat === 'html' ? '已识别为 HTML 模板简历，并保留原样式导入' : 'Markdown 已导入为新简历')
+    setNotice(
+      next.sourceFormat === 'html'
+        ? '已识别为 HTML 模板简历，并保留原样式导入'
+        : 'Markdown 已导入为新简历',
+    )
   }
 
   async function importHtmlFile(file: File): Promise<void> {
@@ -472,12 +521,27 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     next.sourceFormat = 'html'
     next.previewMode = 'source-html'
     next.rawSourceHtml = html
-    next.title = createUniqueTitle(next.title || file.name.replace(/\.(html|htm)$/i, ''), resumes.value.map((resume) => resume.title))
+    next.title = createImportedTitle(file.name, resumes.value.map((resume) => resume.title))
     resumes.value.unshift(next)
     currentResumeId.value = next.id
     await persistAll(next)
     await hydrateCurrentPhoto()
     setNotice('HTML 简历已按原模板导入')
+  }
+
+  async function importPdfFile(file: File): Promise<void> {
+    const imported = await importResumeFromPdf(file, resumes.value.map((resume) => resume.title))
+    const next = imported.resume
+    next.title = createImportedTitle(file.name, resumes.value.map((resume) => resume.title))
+    resumes.value.unshift(next)
+    currentResumeId.value = next.id
+    await persistAll(next)
+    await hydrateCurrentPhoto()
+    setNotice(
+      imported.strategy === 'smart-html'
+        ? 'PDF 已按版式特征智能导入，建议检查并微调模块内容'
+        : 'PDF 已导入为可编辑简历，建议检查并微调模块内容',
+    )
   }
 
   async function importResumeFile(file: File): Promise<void> {
@@ -493,16 +557,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return
     }
 
-    if (
-      lowerName.endsWith('.md') ||
-      lowerName.endsWith('.markdown') ||
-      lowerName.endsWith('.txt')
-    ) {
+    if (lowerName.endsWith('.pdf') || file.type === 'application/pdf') {
+      await importPdfFile(file)
+      return
+    }
+
+    if (lowerName.endsWith('.md') || lowerName.endsWith('.markdown') || lowerName.endsWith('.txt')) {
       await importMarkdownFile(file)
       return
     }
 
-    throw new Error('暂不支持该文件格式，请导入 HTML、Markdown、TXT 或 JSON')
+    throw new Error('暂不支持该文件格式，请导入 PDF、HTML、Markdown、TXT 或工程文件')
   }
 
   async function setPhoto(file: File): Promise<void> {
@@ -598,9 +663,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     reorderItems,
     exportCurrentJson,
     importJsonFile,
-    exportCurrentMarkdown,
+    exportCurrentMarkdownPackage,
     exportCurrentHtml,
     importMarkdownFile,
+    importPdfFile,
     importResumeFile,
     setPhoto,
     removePhoto,

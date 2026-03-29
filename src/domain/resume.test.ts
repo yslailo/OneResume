@@ -29,6 +29,15 @@ describe('resume domain', () => {
     expect(migrated.sectionOrder[0]).toBe(migrated.sections[0]?.id)
   })
 
+  it('keeps newly added template ids during migration', () => {
+    const migrated = migrateResumeDocument({
+      title: '模板测试',
+      templateId: 'classic-blue',
+    })
+
+    expect(migrated.templateId).toBe('classic-blue')
+  })
+
   it('creates unique titles for imported resumes', () => {
     expect(createUniqueTitle('产品经理', ['产品经理', '产品经理 (2)'])).toBe('产品经理 (3)')
 

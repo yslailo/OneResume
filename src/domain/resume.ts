@@ -295,7 +295,10 @@ export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDoc
     id: typeof input.id === 'string' ? input.id : fallback.id,
     version: RESUME_SCHEMA_VERSION,
     templateId:
-      input.templateId === 'minimal' || input.templateId === 'modern' || input.templateId === 'classic-sidebar'
+      input.templateId === 'minimal' ||
+      input.templateId === 'modern' ||
+      input.templateId === 'classic-sidebar' ||
+      input.templateId === 'classic-blue'
         ? input.templateId
         : fallback.templateId,
     sourceFormat: input.sourceFormat === 'html' ? 'html' : 'structured',
