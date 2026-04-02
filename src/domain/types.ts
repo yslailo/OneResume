@@ -1,4 +1,4 @@
-export const RESUME_SCHEMA_VERSION = 1
+export const RESUME_SCHEMA_VERSION = 2
 
 export type ResumeTemplateId = 'minimal' | 'modern' | 'classic-sidebar' | 'classic-blue'
 export type FontFamilyOption = 'sans' | 'serif'
@@ -33,7 +33,7 @@ export interface BasicsSection {
   location: string
   website: string
   github: string
-  summary: string
+  summaryHtml: string
 }
 
 export interface ResumeItem {
@@ -43,7 +43,7 @@ export interface ResumeItem {
   startDate: string
   endDate: string
   location: string
-  descriptionMarkdown: string
+  descriptionHtml: string
   highlights: string[]
 }
 

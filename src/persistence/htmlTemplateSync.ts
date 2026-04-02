@@ -1,6 +1,6 @@
 import { normalizeSectionHeading } from '@/domain/resume'
 import type { ResumeDocument, ResumeItem, ResumeSection } from '@/domain/types'
-import { renderMarkdown } from '@/utils/markdown'
+import { normalizeRichTextHtml } from '@/utils/richTextContent'
 
 function cleanText(value: string): string {
   return value.replace(/\s+/g, ' ').replace(/\u00a0/g, ' ').trim()
@@ -34,13 +34,14 @@ function collectSectionElements(heading: Element): Element[] {
   return elements
 }
 
-function markdownBlocksToNodes(document: Document, markdown: string, paragraphTemplate?: Element | null, listTemplate?: Element | null): Element[] {
-  if (!markdown.trim()) {
+function htmlBlocksToNodes(document: Document, html: string, paragraphTemplate?: Element | null, listTemplate?: Element | null): Element[] {
+  const normalized = normalizeRichTextHtml(html)
+  if (!normalized) {
     return []
   }
 
   const wrapper = document.createElement('div')
-  wrapper.innerHTML = renderMarkdown(markdown)
+  wrapper.innerHTML = normalized
 
   return Array.from(wrapper.children).map((child) => {
     if (child.tagName.toLowerCase() === 'p') {
@@ -106,18 +107,25 @@ function renderSectionNodes(document: Document, section: ResumeSection, existing
   const paragraphTemplates = existingElements.filter((element) => element.tagName.toLowerCase() === 'p')
   const paragraphTemplate = paragraphTemplates[0]
   const secondaryParagraphTemplate = paragraphTemplates[1] ?? paragraphTemplate
-  const listTemplate = existingElements.find((element) => element.tagName.toLowerCase() === 'ul' || element.tagName.toLowerCase() === 'ol')
+  const listTemplate = existingElements.find((element) => ['ul', 'ol'].includes(element.tagName.toLowerCase()))
 
   if (section.type === 'skills') {
     const list = cloneTemplate(document, listTemplate, 'ul')
     const listItemTemplate = listTemplate?.querySelector('li')
     list.innerHTML = ''
     section.items.forEach((item) => {
-      const listItem = cloneTemplate(document, listItemTemplate, 'li')
-      listItem.innerHTML = item.descriptionMarkdown ? renderMarkdown(item.descriptionMarkdown) : item.title
-      if (listItem.querySelector('p')) {
-        listItem.innerHTML = item.descriptionMarkdown ? renderMarkdown(item.descriptionMarkdown) : item.title
+      const nodes = htmlBlocksToNodes(document, item.descriptionHtml || (item.title ? `<p>${item.title}</p>` : ''), paragraphTemplate, listTemplate)
+      if (nodes.length === 1 && ['ul', 'ol'].includes(nodes[0].tagName.toLowerCase())) {
+        Array.from(nodes[0].children).forEach((entry) => {
+          const listItem = cloneTemplate(document, listItemTemplate, 'li')
+          listItem.innerHTML = entry.innerHTML
+          list.appendChild(listItem)
+        })
+        return
       }
+
+      const listItem = cloneTemplate(document, listItemTemplate, 'li')
+      listItem.innerHTML = (item.descriptionHtml || item.title || '').trim()
       list.appendChild(listItem)
     })
     return [list]
@@ -128,7 +136,7 @@ function renderSectionNodes(document: Document, section: ResumeSection, existing
   section.items.forEach((item) => {
     if (section.type === 'education') {
       fragments.push(buildHeaderBlock(document, headerTemplate, item, dateRange(item)))
-      fragments.push(...markdownBlocksToNodes(document, item.descriptionMarkdown, paragraphTemplate, listTemplate))
+      fragments.push(...htmlBlocksToNodes(document, item.descriptionHtml, paragraphTemplate, listTemplate))
       return
     }
 
@@ -138,22 +146,20 @@ function renderSectionNodes(document: Document, section: ResumeSection, existing
       if (role) {
         fragments.push(role)
       }
-      fragments.push(...markdownBlocksToNodes(document, item.descriptionMarkdown, secondaryParagraphTemplate, listTemplate))
+      fragments.push(...htmlBlocksToNodes(document, item.descriptionHtml, secondaryParagraphTemplate, listTemplate))
       return
     }
 
     if (section.type === 'project') {
       fragments.push(buildHeaderBlock(document, headerTemplate, item, item.subtitle || dateRange(item)))
-      fragments.push(...markdownBlocksToNodes(document, item.descriptionMarkdown, paragraphTemplate, listTemplate))
+      fragments.push(...htmlBlocksToNodes(document, item.descriptionHtml, paragraphTemplate, listTemplate))
       return
     }
 
     if (section.type === 'custom') {
       if (item.title) {
         const paragraph = cloneTemplate(document, paragraphTemplate, 'p')
-        paragraph.innerHTML = item.subtitle
-          ? `<strong>${item.title}</strong>：${item.subtitle}`
-          : `<strong>${item.title}</strong>`
+        paragraph.innerHTML = item.subtitle ? `<strong>${item.title}</strong>：${item.subtitle}` : `<strong>${item.title}</strong>`
         fragments.push(paragraph)
       } else if (item.subtitle) {
         const paragraph = cloneTemplate(document, paragraphTemplate, 'p')
@@ -161,7 +167,7 @@ function renderSectionNodes(document: Document, section: ResumeSection, existing
         fragments.push(paragraph)
       }
 
-      fragments.push(...markdownBlocksToNodes(document, item.descriptionMarkdown, secondaryParagraphTemplate, listTemplate))
+      fragments.push(...htmlBlocksToNodes(document, item.descriptionHtml, secondaryParagraphTemplate, listTemplate))
     }
   })
 
@@ -217,6 +223,11 @@ function patchHeader(document: Document, resume: ResumeDocument, photoUrl: strin
     }
   })
 
+  const summaryHost = leadingParagraphs.find((paragraph) => paragraph.textContent && paragraph.textContent.length > 20)
+  if (summaryHost && resume.basics.summaryHtml) {
+    summaryHost.innerHTML = resume.basics.summaryHtml
+  }
+
   const headerImage = Array.from(document.querySelectorAll('img')).find((node) => !firstHeading || isBefore(node, firstHeading))
   if (!headerImage) {
     return
@@ -267,7 +278,7 @@ export function renderResumeIntoHtmlTemplate(templateHtml: string, resume: Resum
       return
     }
     const marker = document.createComment('section-sync-anchor')
-    parent.insertBefore(marker, (content.at(-1)?.nextSibling ?? heading.nextSibling))
+    parent.insertBefore(marker, content.at(-1)?.nextSibling ?? heading.nextSibling)
     content.forEach((element) => element.remove())
     replacementNodes.forEach((node) => {
       parent.insertBefore(node, marker)

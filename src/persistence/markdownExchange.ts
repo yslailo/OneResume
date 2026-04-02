@@ -1,7 +1,7 @@
 import { toString } from 'mdast-util-to-string'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
-import type { Content, Heading, ListItem, Root, RootContent } from 'mdast'
+import type { Heading, ListItem, Root, RootContent } from 'mdast'
 
 import {
   createDefaultSection,
@@ -11,6 +11,7 @@ import {
   sortSectionsByOrder,
 } from '@/domain/resume'
 import type { ResumeDocument, ResumeSection, SectionType } from '@/domain/types'
+import { markdownToRichTextHtml, plainTextToRichTextHtml, richTextHtmlToMarkdown } from '@/utils/richTextContent'
 
 interface MarkdownExportOptions {
   photoMarkdownPath?: string
@@ -25,8 +26,8 @@ function cleanText(value: string): string {
   return value.replace(/\s+/g, ' ').replace(/\u00a0/g, ' ').trim()
 }
 
-function looksLikeHtmlDocument(markdown: string): boolean {
-  return /<h1[\s>]|<h2[\s>]|<div[\s>]|<p[\s>]|<ul[\s>]|<img[\s>]|<table[\s>]/i.test(markdown)
+function looksLikeHtmlDocument(content: string): boolean {
+  return /<h1[\s>]|<h2[\s>]|<div[\s>]|<p[\s>]|<ul[\s>]|<img[\s>]|<table[\s>]/i.test(content)
 }
 
 function renderAvatarMarkdown(photoMarkdownPath?: string): string | null {
@@ -49,16 +50,6 @@ function siblingText(node: Element | null): string {
   return cleanText(node?.textContent ?? '')
 }
 
-function htmlListToMarkdown(list: Element | null): string {
-  if (!list) {
-    return ''
-  }
-
-  return Array.from(list.querySelectorAll('li'))
-    .map((item) => `- ${cleanText(item.textContent ?? '')}`)
-    .join('\n')
-}
-
 function extractPhone(value: string): string {
   const match = value.match(/1[3-9]\d{9}/)
   return match?.[0] ?? ''
@@ -71,20 +62,38 @@ function extractEmail(value: string): string {
 
 function extractLocation(value: string): string {
   const parts = value
-    .split(/[|·•路\\/]/)
+    .split(/[|·•\\/]/)
     .map((part) => cleanText(part))
     .filter(Boolean)
 
   return parts.at(-1) ?? ''
 }
 
+function htmlBlockToRichText(element: Element): string {
+  return element.outerHTML
+}
+
+function htmlElementsToRichText(elements: Element[]): string {
+  return elements
+    .map((element) => {
+      if (['ul', 'ol', 'p', 'blockquote', 'h3', 'h4'].includes(element.tagName.toLowerCase())) {
+        return htmlBlockToRichText(element)
+      }
+
+      const text = cleanText(element.textContent ?? '')
+      return text ? `<p>${text}</p>` : ''
+    })
+    .filter(Boolean)
+    .join('')
+}
+
 export function importResumeFromHtmlContent(
-  markdown: string,
+  html: string,
   existingTitles: string[],
   options: HtmlImportOptions = {},
 ): ResumeDocument {
   const parser = new DOMParser()
-  const document = parser.parseFromString(markdown, 'text/html')
+  const document = parser.parseFromString(html, 'text/html')
   const resume = createImportedResume({ title: 'HTML 导入简历' }, existingTitles)
   const preserveSourceHtml = options.preserveSourceHtml ?? true
   const nameHeading = document.querySelector('h1')
@@ -97,10 +106,10 @@ export function importResumeFromHtmlContent(
   resume.title = resume.basics.name ? `${resume.basics.name}的简历` : resume.title
   resume.sourceFormat = preserveSourceHtml ? 'html' : 'structured'
   resume.previewMode = preserveSourceHtml ? 'source-html' : 'structured'
-  resume.rawSourceHtml = preserveSourceHtml ? markdown : null
+  resume.rawSourceHtml = preserveSourceHtml ? html : null
 
   for (const line of introParagraphs.slice(0, 4)) {
-    if (!resume.basics.location && (line.includes('路') || line.includes('|') || line.includes('·'))) {
+    if (!resume.basics.location && (line.includes('·') || line.includes('|'))) {
       resume.basics.location = extractLocation(line)
     }
     if (!resume.basics.phone) {
@@ -116,6 +125,11 @@ export function importResumeFromHtmlContent(
     }
   }
 
+  const summaryParagraph = Array.from(document.querySelectorAll('p')).find((node) => cleanText(node.textContent ?? '').length > 20)
+  if (summaryParagraph) {
+    resume.basics.summaryHtml = summaryParagraph.outerHTML
+  }
+
   const parsedSections: ResumeSection[] = []
 
   sectionHeadings.forEach((heading) => {
@@ -124,117 +138,41 @@ export function importResumeFromHtmlContent(
     const elements = collectSectionElements(heading)
     const section = createDefaultSection(type, { label })
 
-    if (type === 'education') {
+    if (type === 'education' || type === 'work' || type === 'project') {
       const headerDiv = elements.find((element) => element.tagName.toLowerCase() === 'div')
       const spans = headerDiv
         ? Array.from(headerDiv.querySelectorAll('span')).map((node) => cleanText(node.textContent ?? ''))
         : []
-      const courseText = elements
-        .filter((element) => element.tagName.toLowerCase() === 'p')
-        .map((node) => cleanText(node.textContent ?? ''))
-        .join('\n')
+      const contentElements = elements.filter((element) => element !== headerDiv)
 
       section.items = [
         createEmptyItem({
           title: spans[0] ?? label,
+          subtitle: type === 'work' ? cleanText(contentElements[0]?.textContent ?? '') : spans[1] ?? '',
           startDate: spans[1]?.split('-')[0]?.trim() ?? '',
           endDate: spans[1]?.split('-')[1]?.trim() ?? '',
-          descriptionMarkdown: courseText ? `- ${courseText}` : '',
+          descriptionHtml: htmlElementsToRichText(type === 'work' ? contentElements.slice(1) : contentElements),
         }),
       ]
-    } else if (type === 'work') {
-      const headerDiv = elements.find((element) => element.tagName.toLowerCase() === 'div')
-      const spans = headerDiv
-        ? Array.from(headerDiv.querySelectorAll('span')).map((node) => cleanText(node.textContent ?? ''))
-        : []
-      const paragraphs = elements.filter((element) => element.tagName.toLowerCase() === 'p')
-      const role = cleanText(paragraphs[0]?.textContent ?? '')
-      const extraParagraphs = paragraphs.slice(1).map((node) => cleanText(node.textContent ?? ''))
-      const listMarkdown = htmlListToMarkdown(elements.find((element) => element.tagName.toLowerCase() === 'ul') ?? null)
-      const descriptionParts = [...extraParagraphs, listMarkdown].filter(Boolean)
-
-      section.items = [
-        createEmptyItem({
-          title: spans[0] ?? label,
-          subtitle: role,
-          startDate: spans[1]?.split('-')[0]?.trim() ?? '',
-          endDate: spans[1]?.split('-')[1]?.trim() ?? '',
-          descriptionMarkdown: descriptionParts.join('\n\n'),
-        }),
-      ]
-    } else if (type === 'project') {
-      const items = []
-      let index = 0
-
-      while (index < elements.length) {
-        const current = elements[index]
-        if (current.tagName.toLowerCase() !== 'div') {
-          index += 1
-          continue
-        }
-
-        const spans = Array.from(current.querySelectorAll('span')).map((node) => cleanText(node.textContent ?? ''))
-        if (spans.length === 0) {
-          index += 1
-          continue
-        }
-
-        const descriptionParts: string[] = []
-        let lookahead = index + 1
-
-        while (lookahead < elements.length && elements[lookahead].tagName.toLowerCase() !== 'div') {
-          const element = elements[lookahead]
-          if (element.tagName.toLowerCase() === 'p') {
-            descriptionParts.push(cleanText(element.textContent ?? ''))
-          } else if (element.tagName.toLowerCase() === 'ul') {
-            descriptionParts.push(htmlListToMarkdown(element))
-          }
-          lookahead += 1
-        }
-
-        items.push(
-          createEmptyItem({
-            title: spans[0] ?? '项目经历',
-            subtitle: spans[1] ?? '',
-            descriptionMarkdown: descriptionParts.filter(Boolean).join('\n\n'),
-          }),
-        )
-
-        index = lookahead
-      }
-
-      section.items =
-        items.length > 0
-          ? items
-          : [
-              createEmptyItem({
-                descriptionMarkdown: elements.map((element) => cleanText(element.textContent ?? '')).join('\n'),
-              }),
-            ]
     } else if (type === 'skills') {
-      section.items = Array.from(
+      const items = Array.from(
         (elements.find((element) => /^(ul|ol)$/i.test(element.tagName)) ?? document.createElement('ul')).querySelectorAll('li'),
       ).map((item) =>
         createEmptyItem({
-          descriptionMarkdown: cleanText(item.textContent ?? ''),
+          descriptionHtml: `<p>${cleanText(item.textContent ?? '')}</p>`,
         }),
       )
+
+      section.items = items.length > 0 ? items : [createEmptyItem()]
     } else {
       section.items = [
         createEmptyItem({
-          descriptionMarkdown: elements
-            .map((element) =>
-              element.tagName.toLowerCase() === 'ul'
-                ? htmlListToMarkdown(element)
-                : cleanText(element.textContent ?? ''),
-            )
-            .filter(Boolean)
-            .join('\n\n'),
+          descriptionHtml: htmlElementsToRichText(elements),
         }),
       ]
     }
 
-    section.items = section.items.filter((item) => item.title || item.subtitle || item.descriptionMarkdown)
+    section.items = section.items.filter((item) => item.title || item.subtitle || item.descriptionHtml)
     if (section.items.length > 0) {
       parsedSections.push(section)
     }
@@ -260,7 +198,8 @@ function nodesToMarkdown(nodes: RootContent[]): string {
       }
 
       if (node.type === 'list') {
-        return node.children.map((item) => `- ${toString(item).trim()}`).join('\n')
+        const ordered = Boolean(node.ordered)
+        return node.children.map((item, index) => `${ordered ? `${index + 1}.` : '-'} ${toString(item).trim()}`).join('\n')
       }
 
       if (node.type === 'blockquote') {
@@ -305,6 +244,8 @@ function extractBasics(nodes: RootContent[], resume: ResumeDocument): void {
     .map((line) => line.trim())
     .filter(Boolean)
 
+  const summaryLines: string[] = []
+
   lines.forEach((line, index) => {
     if (index === 0 && !line.includes(':') && !line.includes('：')) {
       resume.basics.name = line
@@ -316,8 +257,7 @@ function extractBasics(nodes: RootContent[], resume: ResumeDocument): void {
     const key = rawKey.trim().toLowerCase()
 
     if (!value) {
-      const merged = line.replace(/^- /, '')
-      resume.basics.summary = resume.basics.summary ? `${resume.basics.summary}\n${merged}` : merged
+      summaryLines.push(line.replace(/^- /, ''))
       return
     }
 
@@ -328,12 +268,14 @@ function extractBasics(nodes: RootContent[], resume: ResumeDocument): void {
     else if (['地点', '城市', 'location'].includes(key)) resume.basics.location = value
     else if (['网站', 'website'].includes(key)) resume.basics.website = value
     else if (['github'].includes(key)) resume.basics.github = value
-    else if (['简介', 'summary'].includes(key)) resume.basics.summary = value
+    else if (['简介', 'summary'].includes(key)) summaryLines.push(value)
   })
+
+  resume.basics.summaryHtml = markdownToRichTextHtml(summaryLines.join('\n\n'))
 }
 
 function listItemToText(item: ListItem): string {
-  return item.children.map((child) => toString(child as Content)).join('\n').trim()
+  return item.children.map((child) => toString(child)).join('\n').trim()
 }
 
 function extractItems(type: SectionType, nodes: RootContent[]): ResumeSection {
@@ -343,8 +285,8 @@ function extractItems(type: SectionType, nodes: RootContent[]): ResumeSection {
   let bufferedNodes: RootContent[] = []
 
   const flush = () => {
-    currentItem.descriptionMarkdown = nodesToMarkdown(bufferedNodes)
-    if (currentItem.title || currentItem.subtitle || currentItem.descriptionMarkdown) {
+    currentItem.descriptionHtml = markdownToRichTextHtml(nodesToMarkdown(bufferedNodes))
+    if (currentItem.title || currentItem.subtitle || currentItem.descriptionHtml) {
       items.push(currentItem)
     }
     currentItem = createEmptyItem()
@@ -373,7 +315,7 @@ function extractItems(type: SectionType, nodes: RootContent[]): ResumeSection {
       node.children.forEach((listItem) => {
         items.push(
           createEmptyItem({
-            descriptionMarkdown: listItemToText(listItem),
+            descriptionHtml: markdownToRichTextHtml(`- ${listItemToText(listItem)}`),
           }),
         )
       })
@@ -384,130 +326,8 @@ function extractItems(type: SectionType, nodes: RootContent[]): ResumeSection {
   })
 
   flush()
-  section.items = items.length > 0 ? items : [createEmptyItem({ descriptionMarkdown: nodesToMarkdown(nodes) })]
+  section.items = items.length > 0 ? items : [createEmptyItem({ descriptionHtml: markdownToRichTextHtml(nodesToMarkdown(nodes)) })]
   return section
-}
-
-function blockChildren(node: Element): Element[] {
-  return Array.from(node.children).filter((child) =>
-    ['article', 'blockquote', 'div', 'h1', 'h2', 'h3', 'h4', 'img', 'li', 'ol', 'p', 'section', 'ul'].includes(
-      child.tagName.toLowerCase(),
-    ),
-  )
-}
-
-function inlineMarkdownFromNode(node: Node): string {
-  if (node.nodeType === Node.TEXT_NODE) {
-    return node.textContent ?? ''
-  }
-
-  if (!(node instanceof Element)) {
-    return ''
-  }
-
-  const tag = node.tagName.toLowerCase()
-  if (tag === 'img') {
-    return ''
-  }
-
-  const content = Array.from(node.childNodes)
-    .map((child) => inlineMarkdownFromNode(child))
-    .join('')
-    .trim()
-
-  if (tag === 'strong' || tag === 'b') {
-    return content ? `**${content}**` : ''
-  }
-
-  if (tag === 'em' || tag === 'i') {
-    return content ? `*${content}*` : ''
-  }
-
-  if (tag === 'a') {
-    const href = node.getAttribute('href')?.trim()
-    if (!href) {
-      return content
-    }
-    return `[${content || href}](${href})`
-  }
-
-  if (tag === 'br') {
-    return '\n'
-  }
-
-  return content
-}
-
-function blockToMarkdown(node: Element, depth = 0): string {
-  const tag = node.tagName.toLowerCase()
-  const children = blockChildren(node)
-
-  if (tag === 'img') {
-    return ''
-  }
-
-  if (tag === 'h1') return `# ${cleanText(node.textContent ?? '')}`
-  if (tag === 'h2') return `## ${cleanText(node.textContent ?? '')}`
-  if (tag === 'h3') return `### ${cleanText(node.textContent ?? '')}`
-  if (tag === 'h4') return `#### ${cleanText(node.textContent ?? '')}`
-
-  if (tag === 'ul' || tag === 'ol') {
-    return Array.from(node.children)
-      .filter((child) => child.tagName.toLowerCase() === 'li')
-      .map((child, index) => {
-        const marker = tag === 'ol' ? `${index + 1}.` : '-'
-        const nestedBlocks = blockChildren(child)
-        if (nestedBlocks.length === 0) {
-          return `${marker} ${inlineMarkdownFromNode(child).trim()}`
-        }
-
-        const inlineParts = Array.from(child.childNodes)
-          .filter((childNode) => !(childNode instanceof Element && ['ul', 'ol'].includes(childNode.tagName.toLowerCase())))
-          .map((childNode) => inlineMarkdownFromNode(childNode))
-          .join('')
-          .trim()
-        const lines = inlineParts ? [`${marker} ${inlineParts}`] : [`${marker}`]
-        nestedBlocks
-          .filter((childBlock) => ['ul', 'ol'].includes(childBlock.tagName.toLowerCase()))
-          .forEach((nestedList) => {
-            const nestedMarkdown = blockToMarkdown(nestedList, depth + 1)
-              .split('\n')
-              .map((line) => `${'  '.repeat(depth + 1)}${line}`)
-              .join('\n')
-            lines.push(nestedMarkdown)
-          })
-        return lines.join('\n')
-      })
-      .join('\n')
-  }
-
-  if (children.length > 0 && ['div', 'section', 'article', 'body', 'main'].includes(tag)) {
-    const mapped = children.map((child) => blockToMarkdown(child, depth)).filter(Boolean)
-    if (mapped.length > 0) {
-      return mapped.join('\n\n')
-    }
-  }
-
-  if (tag === 'div') {
-    const inlineParts = Array.from(node.children)
-      .map((child) => inlineMarkdownFromNode(child).trim())
-      .filter(Boolean)
-    if (inlineParts.length > 0) {
-      return inlineParts.join(' | ')
-    }
-  }
-
-  return inlineMarkdownFromNode(node).trim()
-}
-
-function exportHtmlToMarkdown(html: string): string {
-  const parser = new DOMParser()
-  const document = parser.parseFromString(html, 'text/html')
-  const blocks = Array.from(document.body.children)
-    .map((child) => blockToMarkdown(child))
-    .filter(Boolean)
-
-  return blocks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim()
 }
 
 function exportStructuredResumeToMarkdown(resume: ResumeDocument, photoMarkdownPath?: string): string {
@@ -533,9 +353,10 @@ function exportStructuredResumeToMarkdown(resume: ResumeDocument, photoMarkdownP
     blocks.push(metaLines.join('\n'))
   }
 
-  if (resume.basics.summary.trim()) {
+  const summaryMarkdown = richTextHtmlToMarkdown(resume.basics.summaryHtml)
+  if (summaryMarkdown.trim()) {
     blocks.push('## 个人简介')
-    blocks.push(resume.basics.summary.trim())
+    blocks.push(summaryMarkdown.trim())
   }
 
   sections.forEach((section) => {
@@ -543,11 +364,12 @@ function exportStructuredResumeToMarkdown(resume: ResumeDocument, photoMarkdownP
 
     section.items.forEach((item) => {
       if (section.type === 'skills') {
-        const skillText = (item.descriptionMarkdown || item.title).trim()
-        if (!skillText) {
+        const skillText = richTextHtmlToMarkdown(item.descriptionHtml || (item.title ? `<p>${item.title}</p>` : ''))
+        if (!skillText.trim()) {
           return
         }
-        blocks.push(/^[-*]\s/m.test(skillText) ? skillText : `- ${skillText}`)
+
+        blocks.push(skillText.trim())
         return
       }
 
@@ -562,8 +384,9 @@ function exportStructuredResumeToMarkdown(resume: ResumeDocument, photoMarkdownP
         blocks.push(meta)
       }
 
-      if (item.descriptionMarkdown.trim()) {
-        blocks.push(item.descriptionMarkdown.trim())
+      const descriptionMarkdown = richTextHtmlToMarkdown(item.descriptionHtml)
+      if (descriptionMarkdown.trim()) {
+        blocks.push(descriptionMarkdown.trim())
       }
 
       if (item.highlights.length > 0) {
@@ -579,7 +402,7 @@ export function exportResumeToMarkdown(resume: ResumeDocument, options: Markdown
   if (options.preferredHtml) {
     const blocks = [
       resume.style.showPhoto ? renderAvatarMarkdown(options.photoMarkdownPath) : null,
-      exportHtmlToMarkdown(options.preferredHtml),
+      richTextHtmlToMarkdown(options.preferredHtml),
     ].filter(Boolean)
 
     return blocks.join('\n\n').replace(/\n{3,}/g, '\n\n').trim()
@@ -621,6 +444,10 @@ export function importResumeFromMarkdown(markdown: string, existingTitles: strin
   if (parsedSections.length > 0) {
     resume.sections = parsedSections
     resume.sectionOrder = parsedSections.map((section) => section.id)
+  }
+
+  if (!resume.basics.summaryHtml && resume.basics.name) {
+    resume.basics.summaryHtml = plainTextToRichTextHtml('')
   }
 
   return resume

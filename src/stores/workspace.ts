@@ -45,7 +45,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const currentResumeId = ref('')
   const isReady = ref(false)
   const mobilePane = ref<MobilePane>('editor')
-  const previewScale = ref(1)
+  const previewScale = ref(0.82)
   const photoUrl = ref<string | null>(null)
   const saveError = ref<string | null>(null)
   const notice = ref<string | null>(null)
@@ -341,7 +341,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         items: [
           createEmptyItem({
             title: '自定义标题',
-            descriptionMarkdown: '在这里填写自定义模块内容',
+            descriptionHtml: '<p>在这里填写自定义模块内容</p>',
           }),
         ],
       })
@@ -405,6 +405,15 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       section.items = nextIds
         .map((id) => itemMap.get(id))
         .filter((item): item is ResumeItem => Boolean(item))
+    })
+  }
+
+  async function replaceSectionItems(sectionId: string, items: ResumeItem[]): Promise<void> {
+    await mutateCurrent((draft) => {
+      const section = draft.sections.find((entry) => entry.id === sectionId)
+      if (section) {
+        section.items = items
+      }
     })
   }
 
@@ -661,6 +670,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     updateItem,
     removeItem,
     reorderItems,
+    replaceSectionItems,
     exportCurrentJson,
     importJsonFile,
     exportCurrentMarkdownPackage,

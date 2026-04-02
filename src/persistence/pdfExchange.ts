@@ -23,7 +23,7 @@ function hasMeaningfulResumeContent(resume: ResumeDocument): boolean {
       (item) =>
         item.title.trim() ||
         item.subtitle.trim() ||
-        item.descriptionMarkdown.trim() ||
+        item.descriptionHtml.trim() ||
         item.highlights.length > 0,
     ),
   )

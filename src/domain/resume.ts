@@ -8,11 +8,12 @@ import type {
   SectionType,
 } from '@/domain/types'
 import { RESUME_SCHEMA_VERSION } from '@/domain/types'
+import { markdownToRichTextHtml, plainTextToRichTextHtml } from '@/utils/richTextContent'
 
 const SECTION_LABELS: Record<SectionType, string> = {
   education: '教育背景',
   work: '工作经历',
-  project: '项目经验',
+  project: '项目经历',
   skills: '专业技能',
   custom: '自定义模块',
 }
@@ -45,7 +46,7 @@ export function createEmptyBasics(): BasicsSection {
     location: '',
     website: '',
     github: '',
-    summary: '',
+    summaryHtml: '',
   }
 }
 
@@ -57,7 +58,7 @@ export function createEmptyItem(overrides: Partial<ResumeItem> = {}): ResumeItem
     startDate: '',
     endDate: '',
     location: '',
-    descriptionMarkdown: '',
+    descriptionHtml: '',
     highlights: [],
     ...overrides,
   }
@@ -117,8 +118,9 @@ export function createExampleResume(): ResumeDocument {
     location: '上海',
     website: 'https://portfolio.example.com',
     github: 'https://github.com/example',
-    summary:
-      '专注于信息密集型产品与编辑体验设计，擅长把复杂流程压缩成清晰、高效、可维护的交互。近年来持续投入在本地优先、可打印文档和性能优化方向。',
+    summaryHtml: plainTextToRichTextHtml(
+      '专注于信息密集型产品与编辑体验设计，擅长把复杂流程压缩成清晰、高效、可维护的交互。近年持续投入在本地优先、可打印文档和性能优化方向。',
+    ),
   }
 
   const education = resume.sections.find((section) => section.type === 'education')
@@ -135,7 +137,7 @@ export function createExampleResume(): ResumeDocument {
         startDate: '2016.09',
         endDate: '2020.06',
         location: '上海',
-        descriptionMarkdown: '- 主修软件工程、交互设计与信息可视化\n- 连续两年获得校级奖学金',
+        descriptionHtml: markdownToRichTextHtml('- 主修软件工程、交互设计与信息可视化\n- 连续两年获得校级奖学金'),
       }),
     ]
   }
@@ -148,17 +150,19 @@ export function createExampleResume(): ResumeDocument {
         startDate: '2022.03',
         endDate: '至今',
         location: '上海',
-        descriptionMarkdown:
-          '- 负责在线文档与表单工作台的架构设计，首屏渲染时间降低 **34%**\n- 主导本地优先缓存方案，离线编辑稳定性显著提升\n- 设计打印视图系统，支撑 PDF 导出与 A4 精确预览',
+        descriptionHtml: markdownToRichTextHtml(
+          '- 负责在线文档与表单工作台的架构设计，首屏渲染时间降低 **34%**\n- 主导本地优先缓存方案，离线编辑稳定性显著提升\n- 设计打印视图系统，支持 PDF 导出与 A4 精确预览',
+        ),
       }),
       createEmptyItem({
-        title: '北辰互动',
+        title: '北景互动',
         subtitle: '前端工程师',
         startDate: '2020.07',
         endDate: '2022.02',
         location: '杭州',
-        descriptionMarkdown:
-          '- 参与企业级中后台系统重构，统一组件规范与样式变量\n- 推动 Markdown 文档编辑器在多个业务线复用',
+        descriptionHtml: markdownToRichTextHtml(
+          '- 参与企业级中后台系统重构，统一组件规范与样式变量\n- 推动文档编辑器在多个业务线复用',
+        ),
       }),
     ]
   }
@@ -171,8 +175,9 @@ export function createExampleResume(): ResumeDocument {
         startDate: '2026.03',
         endDate: '进行中',
         location: '远程',
-        descriptionMarkdown:
+        descriptionHtml: markdownToRichTextHtml(
           '- 以 `Vue 3 + Pinia + Tailwind` 构建纯前端简历生成器\n- 实现 JSON 工程导入导出、Markdown 兼容导入与打印导出闭环\n- 模板层与数据层分离，支持多模板无缝切换',
+        ),
       }),
     ]
   }
@@ -182,12 +187,12 @@ export function createExampleResume(): ResumeDocument {
       createEmptyItem({
         title: '前端技术栈',
         subtitle: 'Vue / TypeScript / Vite / Tailwind',
-        descriptionMarkdown: '- 熟悉组件设计、状态管理、打印样式与性能优化',
+        descriptionHtml: markdownToRichTextHtml('- 熟悉组件设计、状态管理、打印样式与性能优化'),
       }),
       createEmptyItem({
         title: '产品能力',
         subtitle: '信息架构 / 交互设计 / 文档体验',
-        descriptionMarkdown: '- 擅长将复杂操作压缩为低心智负担的工作流',
+        descriptionHtml: markdownToRichTextHtml('- 擅长将复杂操作压缩为低心智负担的工作流'),
       }),
     ]
   }
@@ -199,7 +204,7 @@ export function createExampleResume(): ResumeDocument {
       createEmptyItem({
         title: '语言能力',
         subtitle: '中文 / 英文',
-        descriptionMarkdown: '- 英文可作为工作语言\n- 可独立撰写中英文简历与项目材料',
+        descriptionHtml: markdownToRichTextHtml('- 英文可作为工作语言\n- 可独立撰写中英文简历与项目材料'),
       }),
     ]
   }
@@ -247,30 +252,58 @@ function isSectionType(value: unknown): value is SectionType {
   return typeof value === 'string' && ['education', 'work', 'project', 'skills', 'custom'].includes(value)
 }
 
+type LegacyBasicsSection = BasicsSection & {
+  summary?: string
+}
+
+type LegacyResumeItem = ResumeItem & {
+  descriptionMarkdown?: string
+}
+
+function migrateBasics(input: Partial<LegacyBasicsSection> | undefined): BasicsSection {
+  const basicsInput = input ?? {}
+
+  return {
+    ...createEmptyBasics(),
+    ...basicsInput,
+    summaryHtml:
+      typeof basicsInput.summaryHtml === 'string'
+        ? basicsInput.summaryHtml
+        : typeof basicsInput.summary === 'string'
+          ? markdownToRichTextHtml(basicsInput.summary)
+          : '',
+  }
+}
+
+function migrateItem(item: Partial<LegacyResumeItem>): ResumeItem {
+  return createEmptyItem({
+    ...item,
+    id: typeof item.id === 'string' ? item.id : createId('item'),
+    title: typeof item.title === 'string' ? item.title : '',
+    subtitle: typeof item.subtitle === 'string' ? item.subtitle : '',
+    startDate: typeof item.startDate === 'string' ? item.startDate : '',
+    endDate: typeof item.endDate === 'string' ? item.endDate : '',
+    location: typeof item.location === 'string' ? item.location : '',
+    descriptionHtml:
+      typeof item.descriptionHtml === 'string'
+        ? item.descriptionHtml
+        : typeof item.descriptionMarkdown === 'string'
+          ? markdownToRichTextHtml(item.descriptionMarkdown)
+          : '',
+    highlights: Array.isArray(item.highlights)
+      ? item.highlights.filter((entry): entry is string => typeof entry === 'string')
+      : [],
+  })
+}
+
 export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDocument {
   const fallback = createEmptyResume(typeof input.title === 'string' ? input.title : '导入简历')
   const sectionsInput = Array.isArray(input.sections) ? input.sections : fallback.sections
+
   const sections = sectionsInput.map((sectionLike) => {
     const type = isSectionType(sectionLike.type) ? sectionLike.type : 'custom'
     const defaultSection = createDefaultSection(type)
-    const items = Array.isArray(sectionLike.items)
-      ? sectionLike.items.map((item) =>
-          createEmptyItem({
-            ...item,
-            id: typeof item.id === 'string' ? item.id : createId('item'),
-            title: typeof item.title === 'string' ? item.title : '',
-            subtitle: typeof item.subtitle === 'string' ? item.subtitle : '',
-            startDate: typeof item.startDate === 'string' ? item.startDate : '',
-            endDate: typeof item.endDate === 'string' ? item.endDate : '',
-            location: typeof item.location === 'string' ? item.location : '',
-            descriptionMarkdown:
-              typeof item.descriptionMarkdown === 'string' ? item.descriptionMarkdown : '',
-            highlights: Array.isArray(item.highlights)
-              ? item.highlights.filter((entry): entry is string => typeof entry === 'string')
-              : [],
-          }),
-        )
-      : []
+    const items = Array.isArray(sectionLike.items) ? sectionLike.items.map((item) => migrateItem(item as LegacyResumeItem)) : []
 
     return {
       ...defaultSection,
@@ -282,12 +315,6 @@ export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDoc
       items,
     }
   })
-
-  const basicsInput = input.basics ?? {}
-  const basics: BasicsSection = {
-    ...createEmptyBasics(),
-    ...basicsInput,
-  }
 
   return {
     ...fallback,
@@ -314,7 +341,7 @@ export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDoc
       showPhoto: typeof input.style?.showPhoto === 'boolean' ? input.style.showPhoto : true,
       photoPlacement: input.style?.photoPlacement === 'left' ? 'left' : 'right',
     },
-    basics,
+    basics: migrateBasics(input.basics as Partial<LegacyBasicsSection>),
     sections,
     sectionOrder: ensureSectionOrder(sections, input.sectionOrder),
     photoAssetId: typeof input.photoAssetId === 'string' ? input.photoAssetId : null,
@@ -323,10 +350,7 @@ export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDoc
   }
 }
 
-export function createImportedResume(
-  imported: Partial<ResumeDocument>,
-  existingTitles: string[],
-): ResumeDocument {
+export function createImportedResume(imported: Partial<ResumeDocument>, existingTitles: string[]): ResumeDocument {
   const migrated = migrateResumeDocument(imported)
   const now = new Date().toISOString()
   const uniqueTitle = createUniqueTitle(migrated.title, existingTitles)
@@ -362,23 +386,23 @@ export function normalizeSectionHeading(heading: string): SectionType | null {
   const mapping: Record<string, SectionType> = {
     basics: 'custom',
     'basic info': 'custom',
-    '个人信息': 'custom',
-    '教育背景': 'education',
+    个人信息: 'custom',
+    教育背景: 'education',
     education: 'education',
-    '工作经历': 'work',
-    '实习经历': 'work',
-    '实习经验': 'work',
+    工作经历: 'work',
+    实习经历: 'work',
+    实习经验: 'work',
     experience: 'work',
     work: 'work',
-    '项目经验': 'project',
-    '项目经历': 'project',
+    项目经历: 'project',
+    项目经验: 'project',
     projects: 'project',
     project: 'project',
-    '专业技能': 'skills',
-    '技能特长': 'skills',
+    专业技能: 'skills',
+    技能特长: 'skills',
     skills: 'skills',
-    '自定义模块': 'custom',
-    '附加信息': 'custom',
+    自定义模块: 'custom',
+    附加信息: 'custom',
     custom: 'custom',
   }
 

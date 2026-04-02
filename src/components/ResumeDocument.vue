@@ -2,7 +2,6 @@
 import { computed } from 'vue'
 import type { ResumeDocument, ResumeItem, ResumeSection } from '@/domain/types'
 import { sortSectionsByOrder } from '@/domain/resume'
-import { renderMarkdown } from '@/utils/markdown'
 
 const props = defineProps<{
   resume: ResumeDocument
@@ -33,14 +32,8 @@ const metaLinks = computed(() =>
 )
 
 const blueHeaderLocation = computed(() => props.resume.basics.location?.trim() || '')
-
-const blueHeaderContact = computed(() =>
-  [props.resume.basics.phone, props.resume.basics.email].filter(Boolean).join(' | '),
-)
-
-const blueHeaderLinks = computed(() =>
-  [props.resume.basics.website, props.resume.basics.github].filter(Boolean).join(' | '),
-)
+const blueHeaderContact = computed(() => [props.resume.basics.phone, props.resume.basics.email].filter(Boolean).join(' | '))
+const blueHeaderLinks = computed(() => [props.resume.basics.website, props.resume.basics.github].filter(Boolean).join(' | '))
 
 const sheetStyle = computed(() => ({
   '--resume-accent': props.resume.style.accentColor,
@@ -64,7 +57,7 @@ function renderDateRange(item: ResumeItem): string {
 }
 
 function skillContent(item: ResumeItem): string {
-  return item.descriptionMarkdown || item.title
+  return item.descriptionHtml || (item.title ? `<p>${item.title}</p>` : '')
 }
 
 function renderBlueHeadingLine(section: ResumeSection, item: ResumeItem): string {
@@ -106,9 +99,9 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
               <div v-for="meta in metaLinks" :key="meta">{{ meta }}</div>
             </div>
             <div
-              v-if="resume.basics.summary"
-              class="resume-markdown text-sm text-stone-600"
-              v-html="renderMarkdown(resume.basics.summary)"
+              v-if="resume.basics.summaryHtml"
+              class="resume-richtext text-sm text-stone-600"
+              v-html="resume.basics.summaryHtml"
             />
           </div>
 
@@ -119,9 +112,9 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
                 <h3 v-if="item.title" class="text-sm font-semibold text-stone-900">{{ item.title }}</h3>
                 <p v-if="item.subtitle" class="mt-1 text-xs tracking-[0.16em] text-stone-400 uppercase">{{ item.subtitle }}</p>
                 <div
-                  v-if="section.type === 'skills' ? skillContent(item) : item.descriptionMarkdown"
-                  class="resume-markdown mt-2"
-                  v-html="renderMarkdown(section.type === 'skills' ? skillContent(item) : item.descriptionMarkdown)"
+                  v-if="section.type === 'skills' ? skillContent(item) : item.descriptionHtml"
+                  class="resume-richtext mt-2"
+                  v-html="section.type === 'skills' ? skillContent(item) : item.descriptionHtml"
                 />
               </article>
             </div>
@@ -146,9 +139,9 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
                   </p>
                 </div>
                 <div
-                  v-if="section.type === 'skills' ? skillContent(item) : item.descriptionMarkdown"
-                  class="resume-markdown mt-3"
-                  v-html="renderMarkdown(section.type === 'skills' ? skillContent(item) : item.descriptionMarkdown)"
+                  v-if="section.type === 'skills' ? skillContent(item) : item.descriptionHtml"
+                  class="resume-richtext mt-3"
+                  v-html="section.type === 'skills' ? skillContent(item) : item.descriptionHtml"
                 />
               </article>
             </div>
@@ -180,9 +173,9 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
         </div>
 
         <div
-          v-if="resume.basics.summary"
-          class="resume-markdown resume-blue-header__summary"
-          v-html="renderMarkdown(resume.basics.summary)"
+          v-if="resume.basics.summaryHtml"
+          class="resume-richtext resume-blue-header__summary"
+          v-html="resume.basics.summaryHtml"
         />
       </header>
 
@@ -194,8 +187,8 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
               <template v-if="section.type === 'skills'">
                 <div
                   v-if="skillContent(item)"
-                  class="resume-markdown resume-blue-item__markdown resume-blue-item__markdown--compact"
-                  v-html="renderMarkdown(skillContent(item))"
+                  class="resume-richtext resume-blue-item__markdown resume-blue-item__markdown--compact"
+                  v-html="skillContent(item)"
                 />
               </template>
 
@@ -205,9 +198,9 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
                   <div v-if="item.subtitle" class="resume-blue-item__subtle">{{ item.subtitle }}</div>
                 </div>
                 <div
-                  v-if="item.descriptionMarkdown"
-                  class="resume-markdown resume-blue-item__markdown resume-blue-item__markdown--compact"
-                  v-html="renderMarkdown(item.descriptionMarkdown)"
+                  v-if="item.descriptionHtml"
+                  class="resume-richtext resume-blue-item__markdown resume-blue-item__markdown--compact"
+                  v-html="item.descriptionHtml"
                 />
               </template>
 
@@ -218,16 +211,11 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
                     {{ renderBlueAsideMeta(section, item) }}
                   </div>
                 </div>
-                <p
-                  v-if="section.type === 'work' && item.subtitle"
-                  class="resume-blue-item__subtle"
-                >
-                  {{ item.subtitle }}
-                </p>
+                <p v-if="section.type === 'work' && item.subtitle" class="resume-blue-item__subtle">{{ item.subtitle }}</p>
                 <div
-                  v-if="item.descriptionMarkdown"
-                  class="resume-markdown resume-blue-item__markdown resume-blue-item__markdown--compact"
-                  v-html="renderMarkdown(item.descriptionMarkdown)"
+                  v-if="item.descriptionHtml"
+                  class="resume-richtext resume-blue-item__markdown resume-blue-item__markdown--compact"
+                  v-html="item.descriptionHtml"
                 />
               </template>
             </article>
@@ -256,9 +244,9 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
             <span v-for="meta in metaLinks" :key="meta">{{ meta }}</span>
           </div>
           <div
-            v-if="resume.basics.summary"
-            class="resume-markdown max-w-4xl text-sm text-stone-600"
-            v-html="renderMarkdown(resume.basics.summary)"
+            v-if="resume.basics.summaryHtml"
+            class="resume-richtext max-w-4xl text-sm text-stone-600"
+            v-html="resume.basics.summaryHtml"
           />
         </div>
       </header>
@@ -281,9 +269,9 @@ function renderBlueAsideMeta(section: ResumeSection, item: ResumeItem): string {
                 </p>
               </div>
               <div
-                v-if="section.type === 'skills' ? skillContent(item) : item.descriptionMarkdown"
-                class="resume-markdown mt-3"
-                v-html="renderMarkdown(section.type === 'skills' ? skillContent(item) : item.descriptionMarkdown)"
+                v-if="section.type === 'skills' ? skillContent(item) : item.descriptionHtml"
+                class="resume-richtext mt-3"
+                v-html="section.type === 'skills' ? skillContent(item) : item.descriptionHtml"
               />
             </article>
           </div>

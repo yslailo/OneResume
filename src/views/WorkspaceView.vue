@@ -115,7 +115,7 @@ async function handleExport(format: ExportFormat): Promise<void> {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-stone-100 text-stone-900">
+  <div class="flex h-screen overflow-hidden flex-col bg-stone-100 text-stone-900">
     <ResumeToolbar
       :resumes="resumeOptions"
       :current-resume="workspace.currentResume"
@@ -140,9 +140,9 @@ async function handleExport(format: ExportFormat): Promise<void> {
 
     <main
       v-if="workspace.currentResume && workspace.isReady"
-      class="mx-auto grid min-h-0 w-full max-w-[1800px] flex-1 items-stretch gap-4 px-0 pb-4 lg:grid-cols-[minmax(0,0.98fr)_minmax(560px,1.02fr)] lg:pb-6 xl:gap-6"
+      class="mx-auto grid min-h-0 w-full max-w-[1880px] flex-1 items-stretch gap-4 overflow-hidden px-0 pb-4 lg:grid-cols-[minmax(0,1.14fr)_minmax(460px,0.86fr)] lg:pb-6 xl:gap-6"
     >
-      <div :class="{ hidden: workspace.mobilePane !== 'editor' }" class="h-full min-h-0 lg:block">
+      <div :class="{ hidden: workspace.mobilePane !== 'editor' }" class="h-full min-h-0 overflow-hidden lg:block">
         <ResumeEditor
           :resume="workspace.currentResume"
           :ordered-sections="workspace.orderedSections"
@@ -150,7 +150,6 @@ async function handleExport(format: ExportFormat): Promise<void> {
           @update-basics="workspace.updateBasicsField($event.key, $event.value)"
           @toggle-section="workspace.toggleSection"
           @rename-section="workspace.renameSection($event.sectionId, $event.label)"
-          @update-section-type="workspace.updateSectionType($event.sectionId, $event.type)"
           @add-custom-section="workspace.addCustomSection"
           @remove-section="workspace.removeSection"
           @sync-preview="syncStructuredPreview"
@@ -159,12 +158,13 @@ async function handleExport(format: ExportFormat): Promise<void> {
           @remove-item="workspace.removeItem($event.sectionId, $event.itemId)"
           @reorder-sections="workspace.reorderSections"
           @reorder-items="workspace.reorderItems($event.sectionId, $event.itemIds)"
+          @replace-items="workspace.replaceSectionItems($event.sectionId, $event.items)"
           @pick-photo="openPhotoPicker"
           @remove-photo="workspace.removePhoto"
         />
       </div>
 
-      <div :class="{ hidden: workspace.mobilePane !== 'preview' }" class="h-full min-h-0 lg:block">
+      <div :class="{ hidden: workspace.mobilePane !== 'preview' }" class="h-full min-h-0 overflow-hidden lg:block">
         <ResumePreviewPane
           :resume="workspace.currentResume"
           :photo-url="workspace.photoUrl"
