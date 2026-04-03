@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { PhotoPlacement, ResumeDocument, ResumePreviewMode, ResumeTemplateId, ResumeStyle } from '@/domain/types'
+import type { ResumeDocument, ResumePreviewMode, ResumeTemplateId } from '@/domain/types'
 import { ChevronDown, Download, Eye, FileInput, MonitorSmartphone, Plus, Printer, RotateCcw, Trash2, Upload } from 'lucide-vue-next'
 
 interface ResumeOption {
@@ -30,7 +30,6 @@ const emit = defineEmits<{
   (event: 'import-file', file: File): void
   (event: 'update-template', templateId: ResumeTemplateId): void
   (event: 'update-preview-mode', previewMode: ResumePreviewMode): void
-  (event: 'update-style', patch: Partial<ResumeStyle>): void
   (event: 'set-mobile-pane', pane: 'editor' | 'preview'): void
   (event: 'clear-workspace'): void
 }>()
@@ -66,12 +65,12 @@ function handleFileChange(event: Event): void {
 </script>
 
 <template>
-  <header class="sticky top-0 z-20 border-b border-stone-200/80 bg-stone-50/90 backdrop-blur">
-    <div class="mx-auto flex max-w-[1800px] flex-col gap-4 px-4 py-4 lg:px-6">
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+  <header class="sticky top-0 z-20 border-b border-stone-200/80 bg-stone-50/92 backdrop-blur">
+    <div class="mx-auto flex max-w-[1800px] flex-col gap-3 px-4 py-3 lg:px-6">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div class="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
           <div class="flex items-center gap-3 pr-2">
-            <div class="grid h-11 w-11 place-items-center rounded-2xl bg-stone-900 shadow-[0_12px_30px_rgba(15,23,42,0.14)]">
+            <div class="grid h-10 w-10 place-items-center rounded-[18px] bg-stone-900 shadow-[0_10px_26px_rgba(15,23,42,0.12)]">
               <svg width="24" height="24" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                 <path d="M18 10C18 8.89543 18.8954 8 20 8H34L46 20V48C46 49.1046 45.1046 50 44 50H20C18.8954 50 18 49.1046 18 48V10Z" fill="#FAFAF9" />
                 <path d="M34 8V18C34 19.1046 34.8954 20 36 20H46" fill="#D6D3D1" />
@@ -92,7 +91,7 @@ function handleFileChange(event: Event): void {
           <div class="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
             <select
               :value="currentResumeId"
-              class="min-w-52 rounded-[20px] border border-stone-300 bg-white px-4 py-2 text-sm outline-none transition focus:border-teal-700"
+              class="min-w-52 rounded-[18px] border border-stone-300 bg-white px-4 py-2 text-sm outline-none transition focus:border-teal-700"
               @change="emit('switch-resume', ($event.target as HTMLSelectElement).value)"
             >
               <option v-for="resume in resumes" :key="resume.id" :value="resume.id">
@@ -103,7 +102,7 @@ function handleFileChange(event: Event): void {
             <input
               v-model="titleModel"
               type="text"
-              class="min-w-0 flex-1 rounded-[20px] border border-transparent bg-white/80 px-4 py-2 text-sm font-medium text-stone-800 outline-none transition hover:border-stone-300 focus:border-teal-700"
+              class="min-w-0 flex-1 rounded-[18px] border border-transparent bg-white/80 px-4 py-2 text-sm font-medium text-stone-800 outline-none transition hover:border-stone-300 focus:border-teal-700"
               placeholder="输入简历名称"
             />
           </div>
@@ -155,7 +154,7 @@ function handleFileChange(event: Event): void {
         </div>
       </div>
 
-      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <div class="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
         <div class="flex flex-wrap items-center gap-2">
           <template v-if="hasSourceHtml">
             <span class="text-xs font-semibold tracking-[0.24em] text-stone-500 uppercase">展示模式</span>
@@ -201,6 +200,11 @@ function handleFileChange(event: Event): void {
           >
             {{ template.label }}
           </button>
+
+          <button class="toolbar-chip" @click="emit('clear-workspace')">清空本地数据</button>
+          <span v-if="saveError" class="rounded-full bg-rose-50 px-3 py-1 text-xs text-rose-700">
+            {{ saveError }}
+          </span>
         </div>
 
         <div class="flex items-center gap-2 md:hidden">
@@ -221,100 +225,6 @@ function handleFileChange(event: Event): void {
             预览
           </button>
         </div>
-
-        <details class="rounded-[24px] border border-stone-200 bg-white px-4 py-3 shadow-sm open:shadow-md">
-          <summary class="cursor-pointer list-none text-sm font-medium text-stone-700">样式面板</summary>
-          <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-7">
-            <label class="flex flex-col gap-2 text-xs text-stone-500">
-              主题色
-              <input
-                type="color"
-                :value="currentResume?.style.accentColor"
-                class="h-10 w-full cursor-pointer rounded-[16px] border border-stone-200 bg-white"
-                @input="emit('update-style', { accentColor: ($event.target as HTMLInputElement).value })"
-              />
-            </label>
-
-            <label class="flex flex-col gap-2 text-xs text-stone-500">
-              字体
-              <select
-                :value="currentResume?.style.fontFamily"
-                class="rounded-[16px] border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 outline-none focus:border-teal-700"
-                @change="emit('update-style', { fontFamily: ($event.target as HTMLSelectElement).value as ResumeStyle['fontFamily'] })"
-              >
-                <option value="sans">无衬线</option>
-                <option value="serif">有衬线</option>
-              </select>
-            </label>
-
-            <label class="flex flex-col gap-2 text-xs text-stone-500">
-              字号
-              <input
-                type="range"
-                min="12"
-                max="16"
-                step="1"
-                :value="currentResume?.style.baseFontSize"
-                @input="emit('update-style', { baseFontSize: Number(($event.target as HTMLInputElement).value) })"
-              />
-            </label>
-
-            <label class="flex flex-col gap-2 text-xs text-stone-500">
-              行距
-              <input
-                type="range"
-                min="1.4"
-                max="1.9"
-                step="0.05"
-                :value="currentResume?.style.lineHeight"
-                @input="emit('update-style', { lineHeight: Number(($event.target as HTMLInputElement).value) })"
-              />
-            </label>
-
-            <label class="flex flex-col gap-2 text-xs text-stone-500">
-              页边距
-              <input
-                type="range"
-                min="14"
-                max="28"
-                step="1"
-                :value="currentResume?.style.pageMargin"
-                @input="emit('update-style', { pageMargin: Number(($event.target as HTMLInputElement).value) })"
-              />
-            </label>
-
-            <label class="flex flex-col gap-2 text-xs text-stone-500">
-              头像显示
-              <select
-                :value="currentResume?.style.showPhoto ? 'show' : 'hide'"
-                class="rounded-[16px] border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 outline-none focus:border-teal-700"
-                @change="emit('update-style', { showPhoto: ($event.target as HTMLSelectElement).value === 'show' })"
-              >
-                <option value="show">显示头像</option>
-                <option value="hide">隐藏头像</option>
-              </select>
-            </label>
-
-            <label class="flex flex-col gap-2 text-xs text-stone-500">
-              头像位置
-              <select
-                :value="currentResume?.style.photoPlacement"
-                class="rounded-[16px] border border-stone-200 bg-white px-3 py-2 text-sm text-stone-700 outline-none focus:border-teal-700"
-                @change="emit('update-style', { photoPlacement: ($event.target as HTMLSelectElement).value as PhotoPlacement })"
-              >
-                <option value="right">靠右</option>
-                <option value="left">靠左</option>
-              </select>
-            </label>
-          </div>
-
-          <div class="mt-4 flex flex-wrap items-center gap-2 text-xs text-stone-500">
-            <button class="toolbar-chip" @click="emit('clear-workspace')">清空全部本地数据</button>
-            <span v-if="saveError" class="rounded-full bg-rose-50 px-3 py-1 text-rose-700">
-              {{ saveError }}
-            </span>
-          </div>
-        </details>
       </div>
 
       <input

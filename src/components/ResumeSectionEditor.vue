@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
 import type { ResumeItem, ResumeSection } from '@/domain/types'
-import { GripVertical, Plus, Trash2 } from 'lucide-vue-next'
+import { ChevronDown, GripVertical, Plus, Trash2 } from 'lucide-vue-next'
 import RichTextMarkdownEditor from '@/components/RichTextMarkdownEditor.vue'
 import { normalizeSkillItems } from '@/utils/sectionEditing'
 
@@ -19,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const localItems = ref<ResumeItem[]>([...props.section.items])
+const expandedItemIds = ref<string[]>([])
 
 watch(
   () => props.section.items,
@@ -35,12 +36,38 @@ watch(
   { deep: true, immediate: true },
 )
 
+watch(
+  () => props.section.id,
+  () => {
+    expandedItemIds.value = shouldStartCollapsed() ? [] : props.section.items.map((item) => item.id)
+  },
+  { immediate: true },
+)
+
+watch(
+  () => props.section.items.map((item) => item.id),
+  (ids, previousIds = []) => {
+    if (!shouldStartCollapsed()) {
+      expandedItemIds.value = ids
+      return
+    }
+
+    const nextExpanded = expandedItemIds.value.filter((id) => ids.includes(id))
+    const addedIds = ids.filter((id) => !previousIds.includes(id))
+    expandedItemIds.value = [...nextExpanded, ...addedIds]
+  },
+)
+
 function isSkillSection(): boolean {
   return props.section.type === 'skills'
 }
 
 function isCustomSection(): boolean {
   return props.section.type === 'custom'
+}
+
+function shouldStartCollapsed(): boolean {
+  return ['education', 'work', 'project'].includes(props.section.type)
 }
 
 function areItemsEqual(left: ResumeItem[], right: ResumeItem[]): boolean {
@@ -94,6 +121,16 @@ function updateSkillEditor(nextValue: string): void {
 function itemHintLabel(): string {
   return isCustomSection() ? '自定义内容' : '经历条目'
 }
+
+function isExpanded(itemId: string): boolean {
+  return expandedItemIds.value.includes(itemId)
+}
+
+function toggleExpanded(itemId: string): void {
+  expandedItemIds.value = isExpanded(itemId)
+    ? expandedItemIds.value.filter((id) => id !== itemId)
+    : [...expandedItemIds.value, itemId]
+}
 </script>
 
 <template>
@@ -132,26 +169,38 @@ function itemHintLabel(): string {
       >
         <template #item="{ element: item, index }">
           <article class="editor-item-card">
-            <div class="editor-item-card__header">
-              <div class="flex items-center gap-3">
+            <div class="editor-item-card__header" :class="{ 'editor-item-card__header--collapsed': !isExpanded(item.id) }">
+              <div class="flex min-w-0 items-center gap-3">
                 <button type="button" class="editor-item-card__handle drag-handle">
                   <GripVertical class="h-4 w-4" />
                 </button>
-                <div>
+                <button type="button" class="min-w-0 flex-1 text-left" @click="toggleExpanded(item.id)">
                   <div class="text-xs font-semibold tracking-[0.18em] text-stone-400 uppercase">条目 {{ index + 1 }}</div>
-                  <div class="mt-1 text-xs text-stone-500">{{ itemHintLabel() }}</div>
-                </div>
+                  <div class="mt-1 flex items-center gap-2 text-xs text-stone-500">
+                    <span class="truncate">{{ item.title || item.subtitle || itemHintLabel() }}</span>
+                  </div>
+                </button>
               </div>
-              <button
-                type="button"
-                class="editor-item-card__delete"
-                @click="emit('remove-item', { sectionId: section.id, itemId: item.id })"
-              >
-                <Trash2 class="h-4 w-4" />
-              </button>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="editor-item-card__collapse"
+                  :class="{ 'editor-item-card__collapse--expanded': isExpanded(item.id) }"
+                  @click="toggleExpanded(item.id)"
+                >
+                  <ChevronDown class="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  class="editor-item-card__delete"
+                  @click="emit('remove-item', { sectionId: section.id, itemId: item.id })"
+                >
+                  <Trash2 class="h-4 w-4" />
+                </button>
+              </div>
             </div>
 
-            <div v-if="isCustomSection()" class="editor-item-card__body">
+            <div v-if="isExpanded(item.id) && isCustomSection()" class="editor-item-card__body">
               <label class="field-shell field-shell--editor">
                 <span class="field-label">模块名称</span>
                 <input
@@ -188,7 +237,7 @@ function itemHintLabel(): string {
               </div>
             </div>
 
-            <div v-else class="editor-item-card__body md:grid-cols-2">
+            <div v-else-if="isExpanded(item.id)" class="editor-item-card__body md:grid-cols-2">
               <label class="field-shell field-shell--editor">
                 <span class="field-label">标题</span>
                 <input

@@ -133,14 +133,13 @@ async function handleExport(format: ExportFormat): Promise<void> {
       @import-file="handleImportFile"
       @update-template="workspace.updateTemplate"
       @update-preview-mode="workspace.updatePreviewMode"
-      @update-style="workspace.updateStyle"
       @set-mobile-pane="workspace.setMobilePane"
       @clear-workspace="clearAllLocalData"
     />
 
     <main
       v-if="workspace.currentResume && workspace.isReady"
-      class="mx-auto grid min-h-0 w-full max-w-[1880px] flex-1 items-stretch gap-4 overflow-hidden px-0 pb-4 lg:grid-cols-[minmax(0,1.14fr)_minmax(460px,0.86fr)] lg:pb-6 xl:gap-6"
+      class="mx-auto grid min-h-0 w-full max-w-[1880px] flex-1 items-stretch gap-3 overflow-hidden px-3 pb-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(520px,0.92fr)] lg:px-4 lg:pb-4 xl:gap-4 xl:px-6"
     >
       <div :class="{ hidden: workspace.mobilePane !== 'editor' }" class="h-full min-h-0 overflow-hidden lg:block">
         <ResumeEditor
@@ -150,7 +149,7 @@ async function handleExport(format: ExportFormat): Promise<void> {
           @update-basics="workspace.updateBasicsField($event.key, $event.value)"
           @toggle-section="workspace.toggleSection"
           @rename-section="workspace.renameSection($event.sectionId, $event.label)"
-          @add-custom-section="workspace.addCustomSection"
+          @add-custom-section="workspace.addCustomSection($event)"
           @remove-section="workspace.removeSection"
           @sync-preview="syncStructuredPreview"
           @add-item="workspace.addItem"
@@ -161,6 +160,7 @@ async function handleExport(format: ExportFormat): Promise<void> {
           @replace-items="workspace.replaceSectionItems($event.sectionId, $event.items)"
           @pick-photo="openPhotoPicker"
           @remove-photo="workspace.removePhoto"
+          @update-style="workspace.updateStyle"
         />
       </div>
 

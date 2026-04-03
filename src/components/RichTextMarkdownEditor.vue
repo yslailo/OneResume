@@ -2,6 +2,7 @@
 import { nextTick, ref, watch } from 'vue'
 import { EditorContent, useEditor, type Editor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
+import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import {
   Bold,
@@ -16,6 +17,7 @@ import {
 import { normalizeRichTextHtml } from '@/utils/richTextContent'
 
 type ToolbarCommand = 'bold' | 'italic' | 'heading' | 'unordered-list' | 'ordered-list' | 'link'
+type SelectionSnapshot = { from: number; to: number }
 
 const props = withDefaults(
   defineProps<{
@@ -39,6 +41,8 @@ const emit = defineEmits<{
 
 const expanded = ref(false)
 const dialogHtml = ref(normalizeRichTextHtml(props.modelValue))
+const editorSelection = ref<SelectionSnapshot | null>(null)
+const dialogSelection = ref<SelectionSnapshot | null>(null)
 
 const toolbarActions = [
   { id: 'bold', label: '加粗', icon: Bold },
@@ -49,17 +53,21 @@ const toolbarActions = [
   { id: 'link', label: '链接', icon: Link2 },
 ] satisfies Array<{ id: ToolbarCommand; label: string; icon: typeof Bold }>
 
-function createTiptapEditor(initialContent: string, onContentUpdate: (html: string) => void) {
+function createTiptapEditor(
+  initialContent: string,
+  onContentUpdate: (html: string) => void,
+  onSelectionChange: (selection: SelectionSnapshot) => void,
+) {
   return useEditor({
     content: normalizeRichTextHtml(initialContent),
     extensions: [
       StarterKit.configure({
         heading: { levels: [3] },
-        link: {
-          openOnClick: false,
-          autolink: false,
-          defaultProtocol: 'https',
-        },
+      }),
+      Link.configure({
+        openOnClick: false,
+        autolink: false,
+        defaultProtocol: 'https',
       }),
       Placeholder.configure({
         placeholder: props.placeholder,
@@ -74,15 +82,31 @@ function createTiptapEditor(initialContent: string, onContentUpdate: (html: stri
     onUpdate: ({ editor }) => {
       onContentUpdate(normalizeRichTextHtml(editor.getHTML()))
     },
+    onCreate: ({ editor }) => {
+      onSelectionChange({
+        from: editor.state.selection.from,
+        to: editor.state.selection.to,
+      })
+    },
+    onSelectionUpdate: ({ editor }) => {
+      onSelectionChange({
+        from: editor.state.selection.from,
+        to: editor.state.selection.to,
+      })
+    },
   })
 }
 
 const editor = createTiptapEditor(props.modelValue, (html) => {
   emit('update:modelValue', html)
+}, (selection) => {
+  editorSelection.value = selection
 })
 
 const dialogEditor = createTiptapEditor(dialogHtml.value, (html) => {
   dialogHtml.value = html
+}, (selection) => {
+  dialogSelection.value = selection
 })
 
 watch(
@@ -104,39 +128,53 @@ watch(
   },
 )
 
-function executeCommand(target: Editor | null | undefined, command: ToolbarCommand): void {
+function chainWithSelection(target: Editor, selection: SelectionSnapshot | null | undefined) {
+  const chain = target.chain().focus()
+
+  if (selection) {
+    chain.setTextSelection(selection)
+  }
+
+  return chain
+}
+
+function executeCommand(
+  target: Editor | null | undefined,
+  command: ToolbarCommand,
+  selection: SelectionSnapshot | null | undefined,
+): void {
   if (!target) {
     return
   }
 
   if (command === 'bold') {
-    target.chain().focus().toggleBold().run()
+    chainWithSelection(target, selection).toggleBold().run()
     return
   }
 
   if (command === 'italic') {
-    target.chain().focus().toggleItalic().run()
+    chainWithSelection(target, selection).toggleItalic().run()
     return
   }
 
   if (command === 'heading') {
-    target.chain().focus().toggleHeading({ level: 3 }).run()
+    chainWithSelection(target, selection).toggleHeading({ level: 3 }).run()
     return
   }
 
   if (command === 'unordered-list') {
-    target.chain().focus().toggleBulletList().run()
+    chainWithSelection(target, selection).toggleBulletList().run()
     return
   }
 
   if (command === 'ordered-list') {
-    target.chain().focus().toggleOrderedList().run()
+    chainWithSelection(target, selection).toggleOrderedList().run()
     return
   }
 
   const href = target.getAttributes('link').href as string | undefined
   if (href) {
-    target.chain().focus().unsetLink().run()
+    chainWithSelection(target, selection).unsetLink().run()
     return
   }
 
@@ -145,7 +183,35 @@ function executeCommand(target: Editor | null | undefined, command: ToolbarComma
     return
   }
 
-  target.chain().focus().setLink({ href: url.trim() }).run()
+  chainWithSelection(target, selection).extendMarkRange('link').setLink({ href: url.trim() }).run()
+}
+
+function isCommandActive(target: Editor | null | undefined, command: ToolbarCommand): boolean {
+  if (!target) {
+    return false
+  }
+
+  if (command === 'bold') {
+    return target.isActive('bold')
+  }
+
+  if (command === 'italic') {
+    return target.isActive('italic')
+  }
+
+  if (command === 'heading') {
+    return target.isActive('heading', { level: 3 })
+  }
+
+  if (command === 'unordered-list') {
+    return target.isActive('bulletList')
+  }
+
+  if (command === 'ordered-list') {
+    return target.isActive('orderedList')
+  }
+
+  return target.isActive('link')
 }
 
 function openExpanded(): void {
@@ -191,10 +257,10 @@ function saveExpanded(): void {
           :key="action.id"
           type="button"
           class="toolbar-chip editor-toolbar__icon"
+          :class="{ 'toolbar-chip--active': isCommandActive(editor ?? null, action.id) }"
           :title="action.label"
           :aria-label="action.label"
-          @mousedown.prevent
-          @click="executeCommand(editor ?? null, action.id)"
+          @mousedown.prevent="executeCommand(editor ?? null, action.id, editorSelection)"
         >
           <component :is="action.icon" class="h-3.5 w-3.5" />
         </button>
@@ -206,8 +272,7 @@ function saveExpanded(): void {
         class="toolbar-chip editor-toolbar__icon"
         title="放大编辑"
         aria-label="放大编辑"
-        @mousedown.prevent
-        @click="openExpanded"
+        @mousedown.prevent="openExpanded"
       >
         <Maximize2 class="h-3.5 w-3.5" />
       </button>
@@ -236,10 +301,10 @@ function saveExpanded(): void {
               :key="`dialog-${action.id}`"
               type="button"
               class="toolbar-chip editor-toolbar__icon"
+              :class="{ 'toolbar-chip--active': isCommandActive(dialogEditor ?? null, action.id) }"
               :title="action.label"
               :aria-label="action.label"
-              @mousedown.prevent
-              @click="executeCommand(dialogEditor ?? null, action.id)"
+              @mousedown.prevent="executeCommand(dialogEditor ?? null, action.id, dialogSelection)"
             >
               <component :is="action.icon" class="h-3.5 w-3.5" />
             </button>

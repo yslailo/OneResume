@@ -9,6 +9,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Briefcase,
+  Eye,
+  EyeOff,
   FolderKanban,
   GraduationCap,
   LayoutList,
@@ -73,27 +75,25 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
 <template>
   <section class="workbench-panel">
     <div class="workbench-panel__header">
-      <div>
-        <p class="workbench-panel__eyebrow">{{ selection === 'basics' ? '基础信息' : '模块编辑' }}</p>
-        <h2 class="mt-1 text-sm font-medium text-stone-500">
-          {{ selection === 'basics' ? '编辑简历头部信息与个人摘要' : '把注意力留给当前模块和编辑框本身' }}
+      <div class="min-w-0">
+        <h2 class="text-sm font-semibold text-stone-900">
+          {{ selection === 'basics' ? '基础信息' : selectedMeta?.label || '模块编辑' }}
         </h2>
       </div>
-      <div class="flex items-center gap-2 text-xs text-stone-500">
-        <LayoutPanelTop class="h-4 w-4 text-teal-700" />
-        编辑面板
+      <div class="flex items-center text-stone-400">
+        <LayoutPanelTop class="h-4 w-4" />
       </div>
     </div>
 
-    <div class="workbench-panel__body px-4 py-4 lg:px-6">
-      <div class="flex flex-col gap-4">
+    <div class="workbench-panel__body px-4 py-4 lg:px-5">
+      <div class="flex flex-col gap-3">
         <article
           v-if="showSourceHtmlNotice"
-          class="rounded-[28px] border border-amber-200 bg-amber-50/80 p-5 text-sm text-amber-900 shadow-sm"
+          class="rounded-[24px] border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-sm"
         >
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="max-w-2xl">
-              当前右侧仍在使用导入文件自带的 HTML 模板预览。这里的修改不会实时覆盖原模板版式；
+              当前右侧仍在使用导入文件自带的 HTML 模板预览。这里的修改不会直接覆盖原模板版式；
               如果你想边改边看，可以切到“模板同步预览”，继续沿用上传模板的视觉样式。
             </div>
             <button type="button" class="toolbar-chip" @click="emit('sync-preview')">同步预览</button>
@@ -101,13 +101,7 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
         </article>
 
         <article v-if="selection !== 'basics'" class="workbench-edit-shell">
-          <div class="workbench-edit-shell__toolbar">
-            <div class="min-w-0">
-              <p class="text-xs font-semibold tracking-[0.22em] text-stone-500 uppercase">模块导航</p>
-              <p class="mt-1 truncate text-sm text-stone-500">
-                {{ selectedMeta?.label }} · {{ selectedMeta?.hint }}
-              </p>
-            </div>
+          <div class="workbench-edit-shell__toolbar justify-end">
             <div class="flex items-center gap-2">
               <button
                 type="button"
@@ -116,7 +110,6 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
                 @click="emit('select', previousSelection)"
               >
                 <ArrowLeft class="h-4 w-4" />
-                上一个
               </button>
               <button
                 type="button"
@@ -124,7 +117,6 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
                 :disabled="nextSelection === selection"
                 @click="emit('select', nextSelection)"
               >
-                下一个
                 <ArrowRight class="h-4 w-4" />
               </button>
             </div>
@@ -144,7 +136,6 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
           <article class="workbench-content-card">
             <div class="workbench-content-card__header">
               <div class="min-w-0">
-                <p class="text-xs font-semibold tracking-[0.22em] text-stone-500 uppercase">内容编辑</p>
                 <div class="mt-2 flex items-center gap-3">
                   <div class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-teal-50 text-teal-700">
                     <component :is="selectedMeta?.icon || User" class="h-5 w-5" />
@@ -163,9 +154,9 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
                     />
                     <p class="mt-1 text-sm text-stone-500">
                       第 {{ selectedSectionIndex + 1 }} 个模块
-                      <span class="mx-2 text-stone-300">•</span>
+                      <span class="mx-2 text-stone-300">·</span>
                       {{ selectedMeta?.label }}
-                      <span class="mx-2 text-stone-300">•</span>
+                      <span class="mx-2 text-stone-300">·</span>
                       {{ selectedSection.items.length }} 条内容
                     </p>
                   </div>
@@ -173,16 +164,20 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
               </div>
 
               <div class="flex items-center gap-2">
-                <div class="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-medium text-stone-500">
-                  右侧预览实时响应
-                </div>
                 <button
                   type="button"
-                  class="rounded-full px-4 py-2 text-sm transition"
-                  :class="selectedSection.visible ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500'"
+                  class="grid h-10 w-10 place-items-center rounded-full border transition"
+                  :class="
+                    selectedSection.visible
+                      ? 'border-stone-900 bg-stone-900 text-white'
+                      : 'border-stone-200 bg-stone-100 text-stone-500'
+                  "
+                  :title="selectedSection.visible ? '隐藏模块' : '显示模块'"
+                  :aria-label="selectedSection.visible ? '隐藏模块' : '显示模块'"
                   @click="emit('toggle-section', selectedSection.id)"
                 >
-                  {{ selectedSection.visible ? '显示中' : '已隐藏' }}
+                  <Eye v-if="selectedSection.visible" class="h-4 w-4" />
+                  <EyeOff v-else class="h-4 w-4" />
                 </button>
                 <button
                   v-if="selectedSection.type === 'custom'"
@@ -208,6 +203,11 @@ const selectedMeta = computed(() => (selectedSection.value ? sectionMeta[selecte
             </div>
           </article>
         </template>
+
+        <article v-else class="editor-empty-state">
+          当前模块暂时不可用，可能是刚被删除或顺序发生了变化。
+          <button type="button" class="toolbar-chip mt-3" @click="emit('select', 'basics')">返回基础信息</button>
+        </article>
       </div>
     </div>
   </section>

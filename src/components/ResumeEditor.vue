@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { ResumeDocument, ResumeItem, ResumeSection } from '@/domain/types'
+import type { ResumeDocument, ResumeItem, ResumeSection, ResumeStyle } from '@/domain/types'
 import type { WorkbenchSelection } from '@/components/workbench'
 import { createSectionSelection, ensureWorkbenchSelection } from '@/components/workbench'
 import ResumeWorkbenchSidebar from '@/components/ResumeWorkbenchSidebar.vue'
@@ -16,7 +16,7 @@ const emit = defineEmits<{
   (event: 'update-basics', payload: { key: keyof ResumeDocument['basics']; value: string }): void
   (event: 'toggle-section', sectionId: string): void
   (event: 'rename-section', payload: { sectionId: string; label: string }): void
-  (event: 'add-custom-section'): void
+  (event: 'add-custom-section', preset?: 'self-evaluation' | 'certificates'): void
   (event: 'remove-section', sectionId: string): void
   (event: 'sync-preview'): void
   (event: 'add-item', sectionId: string): void
@@ -27,6 +27,7 @@ const emit = defineEmits<{
   (event: 'replace-items', payload: { sectionId: string; items: ResumeItem[] }): void
   (event: 'pick-photo'): void
   (event: 'remove-photo'): void
+  (event: 'update-style', patch: Partial<ResumeStyle>): void
 }>()
 
 const selection = ref<WorkbenchSelection>('basics')
@@ -55,14 +56,20 @@ function handleAddCustomSection(): void {
   pendingSelectNewSection.value = true
   emit('add-custom-section')
 }
+
+function handleAddPresetSection(preset: 'self-evaluation' | 'certificates'): void {
+  pendingSelectNewSection.value = true
+  emit('add-custom-section', preset)
+}
 </script>
 
 <template>
   <div
     class="grid h-full min-h-0 gap-4"
-    :class="sidebarCollapsed ? 'xl:grid-cols-[92px_minmax(0,1fr)]' : 'xl:grid-cols-[280px_minmax(0,1fr)]'"
+    :class="sidebarCollapsed ? 'xl:grid-cols-[92px_minmax(0,1fr)]' : 'xl:grid-cols-[340px_minmax(0,1fr)]'"
   >
     <ResumeWorkbenchSidebar
+      :resume="resume"
       :sections="orderedSections"
       :selection="selection"
       :collapsed="sidebarCollapsed"
@@ -70,6 +77,8 @@ function handleAddCustomSection(): void {
       @toggle-section="emit('toggle-section', $event)"
       @reorder-sections="emit('reorder-sections', $event)"
       @add-custom-section="handleAddCustomSection"
+      @add-preset-section="handleAddPresetSection"
+      @update-style="emit('update-style', $event)"
       @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
     />
 

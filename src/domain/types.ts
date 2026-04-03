@@ -1,7 +1,7 @@
-export const RESUME_SCHEMA_VERSION = 2
+export const RESUME_SCHEMA_VERSION = 3
 
 export type ResumeTemplateId = 'minimal' | 'modern' | 'classic-sidebar' | 'classic-blue'
-export type FontFamilyOption = 'sans' | 'serif'
+export type FontFamilyOption = 'alibaba' | 'mi-sans' | 'ibm-plex' | 'source-serif'
 export type PhotoPlacement = 'left' | 'right'
 export type SectionType = 'education' | 'work' | 'project' | 'skills' | 'custom'
 export type ResumeSourceFormat = 'structured' | 'html'
@@ -18,9 +18,15 @@ export interface ResumeStyle {
   accentColor: string
   fontFamily: FontFamilyOption
   baseFontSize: number
+  sectionTitleSize: number
+  itemTitleSize: number
   lineHeight: number
   pageMargin: number
   sectionGap: number
+  paragraphGap: number
+  showSectionIcons: boolean
+  centerSubtitle: boolean
+  stackItemMeta: boolean
   showPhoto: boolean
   photoPlacement: PhotoPlacement
 }

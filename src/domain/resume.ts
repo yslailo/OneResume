@@ -27,13 +27,70 @@ export function createId(prefix = 'id'): string {
 export function createDefaultStyle(): ResumeStyle {
   return {
     accentColor: '#0f766e',
-    fontFamily: 'sans',
+    fontFamily: 'alibaba',
     baseFontSize: 14,
+    sectionTitleSize: 18,
+    itemTitleSize: 16,
     lineHeight: 1.65,
     pageMargin: 20,
     sectionGap: 18,
+    paragraphGap: 8,
+    showSectionIcons: false,
+    centerSubtitle: false,
+    stackItemMeta: false,
     showPhoto: true,
     photoPlacement: 'right',
+  }
+}
+
+function normalizeNumberStyleValue(
+  value: unknown,
+  fallback: number,
+  min?: number,
+  max?: number,
+): number {
+  const parsed = typeof value === 'number' ? value : typeof value === 'string' ? Number(value) : Number.NaN
+  if (!Number.isFinite(parsed)) {
+    return fallback
+  }
+
+  const boundedMin = typeof min === 'number' ? Math.max(parsed, min) : parsed
+  return typeof max === 'number' ? Math.min(boundedMin, max) : boundedMin
+}
+
+export function normalizeResumeStyle(input: Partial<ResumeStyle> | undefined): ResumeStyle {
+  const defaults = createDefaultStyle()
+  const style = input ?? {}
+
+  return {
+    ...defaults,
+    ...style,
+    accentColor:
+      typeof style.accentColor === 'string' && style.accentColor.trim() ? style.accentColor : defaults.accentColor,
+    fontFamily:
+      style.fontFamily === 'source-serif'
+        ? 'source-serif'
+        : style.fontFamily === 'mi-sans'
+          ? 'mi-sans'
+          : style.fontFamily === 'ibm-plex'
+            ? 'ibm-plex'
+            : style.fontFamily === 'alibaba'
+              ? 'alibaba'
+              : style.fontFamily === 'serif'
+                ? 'source-serif'
+                : defaults.fontFamily,
+    baseFontSize: normalizeNumberStyleValue(style.baseFontSize, defaults.baseFontSize, 10, 24),
+    sectionTitleSize: normalizeNumberStyleValue(style.sectionTitleSize, defaults.sectionTitleSize, 12, 30),
+    itemTitleSize: normalizeNumberStyleValue(style.itemTitleSize, defaults.itemTitleSize, 12, 26),
+    lineHeight: normalizeNumberStyleValue(style.lineHeight, defaults.lineHeight, 1.1, 2.4),
+    pageMargin: normalizeNumberStyleValue(style.pageMargin, defaults.pageMargin, 0, 50),
+    sectionGap: normalizeNumberStyleValue(style.sectionGap, defaults.sectionGap, 0, 48),
+    paragraphGap: normalizeNumberStyleValue(style.paragraphGap, defaults.paragraphGap, 0, 24),
+    showSectionIcons: typeof style.showSectionIcons === 'boolean' ? style.showSectionIcons : defaults.showSectionIcons,
+    centerSubtitle: typeof style.centerSubtitle === 'boolean' ? style.centerSubtitle : defaults.centerSubtitle,
+    stackItemMeta: typeof style.stackItemMeta === 'boolean' ? style.stackItemMeta : defaults.stackItemMeta,
+    showPhoto: typeof style.showPhoto === 'boolean' ? style.showPhoto : defaults.showPhoto,
+    photoPlacement: style.photoPlacement === 'left' ? 'left' : defaults.photoPlacement,
   }
 }
 
@@ -334,13 +391,7 @@ export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDoc
         ? input.previewMode
         : 'structured',
     rawSourceHtml: typeof input.rawSourceHtml === 'string' ? input.rawSourceHtml : null,
-    style: {
-      ...createDefaultStyle(),
-      ...(input.style ?? {}),
-      fontFamily: input.style?.fontFamily === 'serif' ? 'serif' : 'sans',
-      showPhoto: typeof input.style?.showPhoto === 'boolean' ? input.style.showPhoto : true,
-      photoPlacement: input.style?.photoPlacement === 'left' ? 'left' : 'right',
-    },
+    style: normalizeResumeStyle(input.style),
     basics: migrateBasics(input.basics as Partial<LegacyBasicsSection>),
     sections,
     sectionOrder: ensureSectionOrder(sections, input.sectionOrder),

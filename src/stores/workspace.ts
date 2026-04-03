@@ -7,6 +7,7 @@ import {
   createExampleResume,
   createUniqueTitle,
   moveSectionOrder,
+  normalizeResumeStyle,
   sectionLabelForType,
   sortSectionsByOrder,
   touchResume,
@@ -280,10 +281,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
   async function updateStyle(stylePatch: Partial<ResumeStyle>): Promise<void> {
     await mutateCurrent((draft) => {
-      draft.style = {
+      draft.style = normalizeResumeStyle({
         ...draft.style,
         ...stylePatch,
-      }
+      })
     })
   }
 
@@ -349,6 +350,45 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       draft.sectionOrder.push(section.id)
     })
     setNotice('已新增自定义模块')
+  }
+
+  async function addCustomSectionFromPreset(preset?: 'self-evaluation' | 'certificates'): Promise<void> {
+    if (!preset) {
+      await addCustomSection()
+      return
+    }
+
+    await mutateCurrent((draft) => {
+      const presetConfig =
+        preset === 'self-evaluation'
+          ? {
+              label: '自我评价',
+              itemTitle: '自我评价',
+              descriptionHtml:
+                '<p>突出你的核心优势、岗位匹配度、代表性成果和个人特质，让招聘方快速理解你的价值。</p>',
+            }
+          : {
+              label: '证书作品',
+              itemTitle: '证书作品',
+              descriptionHtml:
+                '<p>填写证书名称、作品链接、获奖情况或能证明能力的代表性材料。</p>',
+            }
+
+      const section = createDefaultSection('custom', {
+        label: presetConfig.label,
+        visible: true,
+        items: [
+          createEmptyItem({
+            title: presetConfig.itemTitle,
+            descriptionHtml: presetConfig.descriptionHtml,
+          }),
+        ],
+      })
+      draft.sections.push(section)
+      draft.sectionOrder.push(section.id)
+    })
+
+    setNotice(preset === 'self-evaluation' ? '已新增自我评价模块' : '已新增证书作品模块')
   }
 
   async function removeSection(sectionId: string): Promise<void> {
@@ -664,7 +704,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     toggleSection,
     renameSection,
     updateSectionType,
-    addCustomSection,
+    addCustomSection: addCustomSectionFromPreset,
     removeSection,
     addItem,
     updateItem,
