@@ -38,7 +38,10 @@ Desktop.ini
 *.sw?
 
 # Local notes / docs
-docs/
+docs/*
+!docs/progress.md
 
 # Local-only tests
 *.test.ts
+!src/router/index.test.ts
+!src/views/LandingView.test.ts

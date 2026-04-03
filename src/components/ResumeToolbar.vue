@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { ResumeDocument, ResumePreviewMode, ResumeTemplateId } from '@/domain/types'
+import BrandMark from '@/components/BrandMark.vue'
 import { ChevronDown, Download, Eye, FileInput, MonitorSmartphone, Plus, Printer, RotateCcw, Trash2, Upload } from 'lucide-vue-next'
 
 interface ResumeOption {
@@ -71,16 +72,7 @@ function handleFileChange(event: Event): void {
         <div class="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
           <div class="flex items-center gap-3 pr-2">
             <div class="grid h-10 w-10 place-items-center rounded-[18px] bg-stone-900 shadow-[0_10px_26px_rgba(15,23,42,0.12)]">
-              <svg width="24" height="24" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                <path d="M18 10C18 8.89543 18.8954 8 20 8H34L46 20V48C46 49.1046 45.1046 50 44 50H20C18.8954 50 18 49.1046 18 48V10Z" fill="#FAFAF9" />
-                <path d="M34 8V18C34 19.1046 34.8954 20 36 20H46" fill="#D6D3D1" />
-                <path d="M24 28H40" stroke="#171717" stroke-width="3" stroke-linecap="round" />
-                <path d="M24 35H40" stroke="#171717" stroke-width="3" stroke-linecap="round" />
-                <path d="M24 42H34" stroke="#171717" stroke-width="3" stroke-linecap="round" />
-                <circle cx="45" cy="45" r="10" fill="#0F766E" />
-                <path d="M41 45H49" stroke="#F5F5F4" stroke-width="2.6" stroke-linecap="round" />
-                <path d="M45 41V49" stroke="#F5F5F4" stroke-width="2.6" stroke-linecap="round" />
-              </svg>
+              <BrandMark :size="24" />
             </div>
             <div class="min-w-0">
               <div class="text-sm font-semibold tracking-[0.18em] text-stone-900 uppercase">OneResume</div>
