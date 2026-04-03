@@ -13,6 +13,11 @@ export const routes: RouteRecordRaw[] = [
     component: () => import('@/views/WorkspaceView.vue'),
   },
   {
+    path: '/templates',
+    name: 'templates',
+    component: () => import('@/views/TemplateGalleryView.vue'),
+  },
+  {
     path: '/print/:resumeId',
     name: 'print',
     component: () => import('@/print/PrintView.vue'),

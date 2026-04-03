@@ -1,6 +1,19 @@
 export const RESUME_SCHEMA_VERSION = 3
 
-export type ResumeTemplateId = 'minimal' | 'modern' | 'classic-sidebar' | 'classic-blue'
+export const RESUME_TEMPLATE_IDS = [
+  'minimal',
+  'modern',
+  'professional',
+  'clean',
+  'compact',
+  'elegant',
+  'executive',
+  'ats',
+  'classic-sidebar',
+  'classic-blue',
+] as const
+
+export type ResumeTemplateId = (typeof RESUME_TEMPLATE_IDS)[number]
 export type FontFamilyOption = 'alibaba' | 'mi-sans' | 'ibm-plex' | 'source-serif'
 export type PhotoPlacement = 'left' | 'right'
 export type SectionType = 'education' | 'work' | 'project' | 'skills' | 'custom'

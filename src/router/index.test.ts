@@ -4,18 +4,15 @@ import { describe, expect, it } from 'vitest'
 import { routes } from '@/router'
 
 describe('router', () => {
-  it('routes the landing page and workspace to separate entry points', async () => {
+  it('routes the landing page and workspace to separate entry points', () => {
     const router = createRouter({
       history: createMemoryHistory(),
       routes,
     })
 
-    await router.push('/')
-    await router.isReady()
-    expect(router.currentRoute.value.name).toBe('home')
-
-    await router.push('/workspace')
-    expect(router.currentRoute.value.name).toBe('workspace')
+    expect(router.resolve('/').name).toBe('home')
+    expect(router.resolve('/workspace').name).toBe('workspace')
+    expect(router.resolve('/templates').name).toBe('templates')
   })
 
   it('keeps the print route intact', () => {

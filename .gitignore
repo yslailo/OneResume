@@ -43,5 +43,9 @@ docs/*
 
 # Local-only tests
 *.test.ts
+!src/components/ResumeDocument.test.ts
+!src/components/workbenchPanels.test.ts
+!src/domain/resume.test.ts
 !src/router/index.test.ts
+!src/views/TemplateGalleryView.test.ts
 !src/views/LandingView.test.ts

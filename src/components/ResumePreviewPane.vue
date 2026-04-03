@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import type { ResumeDocument } from '@/domain/types'
 import ResumeDocumentView from '@/components/ResumeDocument.vue'
 import ResumeHtmlFrame from '@/components/ResumeHtmlFrame.vue'
+import { findResumeTemplate } from '@/domain/templates'
 import { renderResumeIntoHtmlTemplate } from '@/persistence/htmlTemplateSync'
 
 const props = defineProps<{
@@ -16,6 +17,8 @@ const htmlFrameSize = ref({
   width: 820,
   height: 1122,
 })
+
+const currentTemplateLabel = computed(() => findResumeTemplate(props.resume.templateId).label)
 
 const scaleStyle = computed(() => ({
   transform: `scale(${props.scale})`,
@@ -43,7 +46,6 @@ const htmlShellStyle = computed(() => ({
   width: `${htmlFrameSize.value.width * props.scale}px`,
   minHeight: `${htmlFrameSize.value.height * props.scale}px`,
 }))
-
 </script>
 
 <template>
@@ -51,6 +53,9 @@ const htmlShellStyle = computed(() => ({
     <div class="workbench-panel__header">
       <div class="min-w-0">
         <h2 class="text-sm font-semibold text-stone-900">简历预览</h2>
+      </div>
+      <div class="preview-panel__header-meta">
+        <span class="preview-panel__template-badge">当前模板：{{ currentTemplateLabel }}</span>
       </div>
     </div>
 

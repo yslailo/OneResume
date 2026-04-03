@@ -305,6 +305,10 @@ a {
   @apply border-stone-900 bg-stone-900 text-white hover:bg-stone-800;
 }
 
+.toolbar-button--feature {
+  @apply border-stone-900 bg-white text-stone-900 shadow-[0_10px_24px_rgba(28,25,23,0.08)] hover:border-stone-900 hover:bg-stone-100;
+}
+
 .toolbar-button--danger {
   @apply text-rose-700 hover:border-rose-300 hover:bg-rose-50;
 }
@@ -377,6 +381,83 @@ a {
 
 .layout-style-card {
   @apply rounded-[24px] border border-stone-200 bg-white px-4 py-4 shadow-sm;
+}
+
+.template-gallery-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(28, 25, 23, 0.035), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #fafaf9 100%);
+}
+
+.template-gallery-shell__inner {
+  width: min(1240px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 28px 0 56px;
+}
+
+.template-gallery-header {
+  @apply flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between;
+}
+
+.template-gallery-header__brand {
+  @apply flex items-center gap-3;
+}
+
+.template-gallery-header__actions {
+  @apply flex flex-col gap-4 sm:items-end;
+}
+
+.template-gallery-header__copy {
+  @apply flex flex-col gap-1;
+}
+
+.template-gallery-header__title {
+  @apply m-0 text-3xl font-semibold tracking-[-0.04em] text-stone-950 sm:text-[2.75rem];
+}
+
+.template-gallery-grid {
+  @apply mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3;
+}
+
+.template-gallery-card {
+  @apply flex flex-col gap-4 rounded-[32px] border border-stone-200 bg-white p-4 transition hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-[0_22px_48px_rgba(28,25,23,0.06)] sm:p-5;
+}
+
+.template-gallery-card--active {
+  @apply border-stone-900 shadow-[0_24px_56px_rgba(28,25,23,0.08)];
+}
+
+.template-gallery-card__top {
+  @apply flex items-start justify-between gap-4;
+}
+
+.template-gallery-card__title {
+  @apply m-0 text-xl font-semibold text-stone-900;
+}
+
+.template-gallery-card__badge {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-600;
+}
+
+.template-gallery-card__preview-shell {
+  @apply overflow-hidden rounded-[24px] border border-stone-200 bg-[linear-gradient(180deg,#fafaf9,#f5f5f4)] p-3;
+  min-height: 360px;
+}
+
+.template-gallery-card__preview-scale {
+  width: calc(210mm * 0.21);
+  height: calc(297mm * 0.21);
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.template-gallery-card__preview-scale > * {
+  flex: none;
+  transform: scale(0.21);
+  transform-origin: top center;
 }
 
 .layout-style-card__header {
@@ -751,6 +832,52 @@ a {
   scrollbar-gutter: stable;
 }
 
+.preview-panel__header-meta {
+  @apply flex items-center gap-2;
+}
+
+.preview-panel__template-badge {
+  @apply rounded-full border border-stone-200 bg-white px-3 py-1 text-xs text-stone-500;
+}
+
+.workspace-notice {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  z-index: 30;
+  transform: translateX(-50%);
+  max-width: min(78vw, 620px);
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(214, 211, 209, 0.92);
+  background:
+    linear-gradient(135deg, rgba(250, 250, 249, 0.96) 0%, rgba(245, 245, 244, 0.94) 100%);
+  color: #57534e;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow:
+    0 18px 36px rgba(28, 25, 23, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+.workspace-notice-fade-enter-active,
+.workspace-notice-fade-leave-active {
+  transition:
+    opacity 0.75s ease,
+    transform 0.75s ease,
+    filter 0.75s ease;
+}
+
+.workspace-notice-fade-enter-from,
+.workspace-notice-fade-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  filter: blur(6px);
+}
+
 .preview-panel__viewport {
   min-height: max-content;
   padding-bottom: 12px;
@@ -812,6 +939,115 @@ a {
   background:
     linear-gradient(180deg, rgba(15, 118, 110, 0.05), transparent 120px),
     white;
+}
+
+.resume-sheet--professional {
+  border-top: 6px solid var(--resume-accent);
+}
+
+.resume-sheet--professional .resume-panel-card {
+  box-shadow: 0 10px 24px rgba(28, 25, 23, 0.035);
+}
+
+.resume-sheet--professional .resume-section-title,
+.resume-sheet--executive .resume-section-title {
+  letter-spacing: 0.18em;
+}
+
+.resume-sheet--clean .resume-header::after,
+.resume-sheet--ats .resume-header::after {
+  background: #d6d3d1;
+}
+
+.resume-sheet--clean .resume-panel-card {
+  background: #fff;
+  border-color: #e7e5e4;
+  box-shadow: none;
+}
+
+.resume-sheet--clean .resume-section-title {
+  letter-spacing: 0.16em;
+  color: #57534e;
+}
+
+.resume-sheet--clean .resume-section-title::after {
+  opacity: 0.22;
+}
+
+.resume-sheet--compact {
+  --resume-font-size: 13px;
+  --resume-section-gap: 12px;
+  --resume-paragraph-gap: 5px;
+}
+
+.resume-sheet--compact .resume-header {
+  padding-bottom: 14px;
+}
+
+.resume-sheet--compact .resume-panel-card {
+  border-radius: 22px;
+  padding: 15px 16px;
+}
+
+.resume-sheet--compact .resume-item-title {
+  line-height: 1.25;
+}
+
+.resume-sheet--elegant {
+  --resume-font-family: "Source Serif 4", "Noto Serif SC", Georgia, serif;
+  --resume-accent: #8b7355;
+}
+
+.resume-sheet--elegant .resume-header::after {
+  background: linear-gradient(90deg, rgba(139, 115, 85, 0.8), rgba(139, 115, 85, 0.08));
+}
+
+.resume-sheet--elegant .resume-section-title {
+  letter-spacing: 0.14em;
+}
+
+.resume-sheet--elegant .resume-richtext li::marker,
+.resume-sheet--elegant .resume-markdown li::marker {
+  color: #8b7355;
+}
+
+.resume-sheet--executive {
+  border-top: 10px solid #1c1917;
+}
+
+.resume-sheet--executive .resume-section-title {
+  color: #1c1917;
+}
+
+.resume-sheet--executive .resume-section-title::after {
+  width: 56px;
+  opacity: 0.28;
+}
+
+.resume-sheet--ats {
+  --resume-accent: #1c1917;
+}
+
+.resume-sheet--ats .resume-header::after,
+.resume-sheet--ats .resume-section-title::after {
+  background: #1c1917;
+  opacity: 0.18;
+}
+
+.resume-sheet--ats .resume-section-title {
+  letter-spacing: 0.08em;
+  color: #1c1917;
+}
+
+.resume-sheet--ats .resume-item-subtitle,
+.resume-sheet--ats .resume-richtext a,
+.resume-sheet--ats .resume-markdown a {
+  color: #1c1917;
+}
+
+.resume-sheet--ats .resume-richtext li::marker,
+.resume-sheet--ats .resume-markdown li::marker {
+  color: #1c1917;
 }
 
 .resume-sheet--classic-blue {
@@ -975,6 +1211,358 @@ a {
 
 .break-inside-avoid {
   break-inside: avoid;
+}
+
+.resume-layout {
+  height: 100%;
+}
+
+.resume-panel-card {
+  border: 1px solid #e7e5e4;
+  border-radius: 26px;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 250, 249, 0.98));
+}
+
+.resume-panel-card--soft {
+  background: linear-gradient(180deg, rgba(250, 250, 249, 0.95), rgba(245, 245, 244, 0.9));
+}
+
+.resume-cards-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.resume-cards-hero__name {
+  margin: 0;
+  font-size: 2.35rem;
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+  color: #1c1917;
+}
+
+.resume-cards-hero__title {
+  margin: 10px 0 0;
+  font-size: 1rem;
+  color: var(--resume-accent);
+}
+
+.resume-cards-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.resume-cards-hero__meta span {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid #e7e5e4;
+  background: #fafaf9;
+  color: #57534e;
+  font-size: 0.82rem;
+}
+
+.resume-cards-hero__summary {
+  margin-top: 16px;
+}
+
+.resume-cards-hero__photo {
+  width: 30mm;
+  aspect-ratio: 35 / 49;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid #e7e5e4;
+}
+
+.resume-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.resume-cards-item + .resume-cards-item {
+  padding-top: 14px;
+  border-top: 1px solid #f0eeec;
+}
+
+.resume-compact-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e7e5e4;
+}
+
+.resume-compact-header__name {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 1.04;
+  letter-spacing: -0.05em;
+}
+
+.resume-compact-header__title {
+  margin: 8px 0 0;
+  color: var(--resume-accent);
+}
+
+.resume-compact-header__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+  color: #57534e;
+  font-size: 0.82rem;
+}
+
+.resume-compact-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  gap: 14px;
+}
+
+.resume-compact-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resume-executive-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.8fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.resume-executive-hero__main {
+  padding: 24px 26px;
+  border-radius: 30px;
+  background: linear-gradient(160deg, #171717 0%, #292524 100%);
+  color: #fafaf9;
+}
+
+.resume-executive-hero__eyebrow {
+  margin: 0;
+  color: rgba(250, 250, 249, 0.68);
+  font-size: 0.78rem;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.resume-executive-hero__name {
+  margin: 18px 0 0;
+  font-size: 2.65rem;
+  line-height: 0.98;
+  letter-spacing: -0.06em;
+}
+
+.resume-executive-hero__title {
+  margin: 10px 0 0;
+  font-size: 1rem;
+  color: rgba(250, 250, 249, 0.85);
+}
+
+.resume-executive-hero__summary {
+  margin-top: 18px;
+  color: rgba(250, 250, 249, 0.84);
+}
+
+.resume-executive-hero__summary strong,
+.resume-executive-hero__summary a {
+  color: #fff;
+}
+
+.resume-executive-hero__side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resume-executive-hero__photo {
+  width: 100%;
+  max-width: 34mm;
+  margin-left: auto;
+  aspect-ratio: 35 / 49;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid #e7e5e4;
+}
+
+.resume-executive-meta-card {
+  border: 1px solid #e7e5e4;
+  border-radius: 26px;
+  padding: 16px 18px;
+  background: #fafaf9;
+}
+
+.resume-executive-meta-card__row + .resume-executive-meta-card__row {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e7e5e4;
+}
+
+.resume-executive-meta-card__row span {
+  display: block;
+  color: #78716c;
+  font-size: 0.76rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.resume-executive-meta-card__row strong {
+  display: block;
+  margin-top: 6px;
+  color: #1c1917;
+  font-size: 0.92rem;
+  word-break: break-word;
+}
+
+.resume-executive-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.78fr);
+  gap: 14px;
+}
+
+.resume-executive-grid__main,
+.resume-executive-grid__side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resume-elegant-header {
+  text-align: center;
+  padding-bottom: 20px;
+}
+
+.resume-elegant-header::after {
+  content: "";
+  display: block;
+  width: 96px;
+  height: 1px;
+  margin: 20px auto 0;
+  background: rgba(139, 115, 85, 0.38);
+}
+
+.resume-elegant-header__photo {
+  width: 30mm;
+  aspect-ratio: 35 / 49;
+  object-fit: cover;
+  border-radius: 999px;
+  border: 1px solid rgba(139, 115, 85, 0.26);
+  margin: 0 auto 14px;
+}
+
+.resume-elegant-header__eyebrow {
+  margin: 0;
+  color: #8b7355;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+}
+
+.resume-elegant-header__name {
+  margin: 14px 0 0;
+  font-size: 2.45rem;
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+}
+
+.resume-elegant-header__title {
+  margin: 10px 0 0;
+  color: #6b5a45;
+}
+
+.resume-elegant-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 16px;
+  margin-top: 14px;
+  color: #7c6a53;
+  font-size: 0.84rem;
+}
+
+.resume-elegant-header__summary {
+  max-width: 150mm;
+  margin: 18px auto 0;
+}
+
+.resume-elegant-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resume-elegant-section {
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(139, 115, 85, 0.16);
+}
+
+.resume-elegant-section__title {
+  margin-bottom: 12px;
+  text-align: center;
+  color: #8b7355;
+  font-size: var(--resume-section-title-size);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.resume-elegant-item__heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.resume-ats-header {
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #d6d3d1;
+}
+
+.resume-ats-header__name {
+  margin: 0;
+  font-size: 2.1rem;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.resume-ats-header__title {
+  margin: 8px 0 0;
+  color: #44403c;
+}
+
+.resume-ats-meta {
+  margin: 8px 0 0;
+  color: #57534e;
+  font-size: 0.85rem;
+}
+
+.resume-ats-header__summary {
+  margin-top: 12px;
+}
+
+.resume-ats-section-title {
+  padding-bottom: 4px;
+  border-bottom: 1px solid #1c1917;
+  color: #1c1917;
+  font-size: var(--resume-section-title-size);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.resume-ats-item + .resume-ats-item {
+  padding-top: 10px;
+  border-top: 1px solid #f0eeec;
 }
 
 .resume-blue-header {
@@ -1144,8 +1732,46 @@ a {
     @apply text-[2.2rem];
   }
 
+  .template-gallery-shell__inner {
+    width: min(100% - 20px, 1240px);
+    padding: 20px 0 40px;
+  }
+
+  .template-gallery-header__actions {
+    @apply items-start;
+  }
+
+  .template-gallery-card__preview-shell {
+    min-height: 260px;
+  }
+
+  .template-gallery-card__preview-scale {
+    width: calc(210mm * 0.15);
+    height: calc(297mm * 0.15);
+  }
+
+  .template-gallery-card__preview-scale > * {
+    transform: scale(0.15);
+  }
+
   .preview-stage {
     padding: 0 0 10px;
+  }
+
+  .resume-cards-hero,
+  .resume-compact-header,
+  .resume-compact-grid,
+  .resume-executive-hero,
+  .resume-executive-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-compact-header__meta {
+    text-align: left;
   }
 
   .resume-blue-header__main {
@@ -1164,6 +1790,11 @@ a {
 
   .resume-blue-item__date {
     white-space: normal;
+  }
+
+  .resume-elegant-item__heading {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 

@@ -7,7 +7,7 @@ import type {
   ResumeTemplateId,
   SectionType,
 } from '@/domain/types'
-import { RESUME_SCHEMA_VERSION } from '@/domain/types'
+import { RESUME_SCHEMA_VERSION, RESUME_TEMPLATE_IDS } from '@/domain/types'
 import { markdownToRichTextHtml, plainTextToRichTextHtml } from '@/utils/richTextContent'
 
 const SECTION_LABELS: Record<SectionType, string> = {
@@ -19,6 +19,7 @@ const SECTION_LABELS: Record<SectionType, string> = {
 }
 
 const DEFAULT_TEMPLATE_ID: ResumeTemplateId = 'minimal'
+const VALID_TEMPLATE_IDS = new Set<ResumeTemplateId>(RESUME_TEMPLATE_IDS)
 
 export function createId(prefix = 'id'): string {
   return `${prefix}-${crypto.randomUUID()}`
@@ -379,11 +380,8 @@ export function migrateResumeDocument(input: Partial<ResumeDocument>): ResumeDoc
     id: typeof input.id === 'string' ? input.id : fallback.id,
     version: RESUME_SCHEMA_VERSION,
     templateId:
-      input.templateId === 'minimal' ||
-      input.templateId === 'modern' ||
-      input.templateId === 'classic-sidebar' ||
-      input.templateId === 'classic-blue'
-        ? input.templateId
+      typeof input.templateId === 'string' && VALID_TEMPLATE_IDS.has(input.templateId as ResumeTemplateId)
+        ? (input.templateId as ResumeTemplateId)
         : fallback.templateId,
     sourceFormat: input.sourceFormat === 'html' ? 'html' : 'structured',
     previewMode:

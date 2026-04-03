@@ -1,16 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ResumeEditor from '@/components/ResumeEditor.vue'
 import ResumePreviewPane from '@/components/ResumePreviewPane.vue'
 import ResumeToolbar from '@/components/ResumeToolbar.vue'
+import { findResumeTemplate, isResumeTemplateId } from '@/domain/templates'
 import { useWorkspaceStore } from '@/stores/workspace'
 
 type ExportFormat = 'pdf' | 'json' | 'html'
 
 const router = useRouter()
+const route = useRoute()
 const workspace = useWorkspaceStore()
 const photoInputRef = ref<HTMLInputElement | null>(null)
+let noticeTimer: number | null = null
+
+const requestedResumeId = computed(() =>
+  typeof route.query.resumeId === 'string' ? route.query.resumeId : undefined,
+)
 
 const resumeOptions = computed(() =>
   workspace.resumes.map((resume) => ({
@@ -21,9 +28,70 @@ const resumeOptions = computed(() =>
 
 onMounted(async () => {
   if (!workspace.isReady) {
-    await workspace.bootstrap()
+    await workspace.bootstrap(requestedResumeId.value)
+  } else {
+    await syncResumeFromRoute()
   }
+
+  await applyTemplateFromRoute()
 })
+
+onBeforeUnmount(() => {
+  clearNoticeTimer()
+})
+
+watch(
+  () => route.query.resumeId,
+  async () => {
+    if (!workspace.isReady) {
+      return
+    }
+
+    await syncResumeFromRoute()
+  },
+)
+
+watch(
+  () => route.query.template,
+  async () => {
+    if (!workspace.isReady) {
+      return
+    }
+
+    await applyTemplateFromRoute()
+  },
+)
+
+watch(
+  () => workspace.notice,
+  (message) => {
+    clearNoticeTimer()
+
+    if (!message) {
+      return
+    }
+
+    noticeTimer = window.setTimeout(() => {
+      workspace.setNotice(null)
+      noticeTimer = null
+    }, 4400)
+  },
+)
+
+function clearNoticeTimer(): void {
+  if (noticeTimer !== null) {
+    window.clearTimeout(noticeTimer)
+    noticeTimer = null
+  }
+}
+
+async function syncResumeFromRoute(): Promise<void> {
+  if (!requestedResumeId.value || requestedResumeId.value === workspace.currentResumeId) {
+    return
+  }
+
+  await workspace.switchResume(requestedResumeId.value)
+}
 
 async function deleteCurrentResume(): Promise<void> {
   if (!workspace.currentResume) {
@@ -69,9 +137,47 @@ function openPhotoPicker(): void {
   photoInputRef.value?.click()
 }
 
+async function openTemplateGallery(): Promise<void> {
+  await router.push({
+    name: 'templates',
+    query: {
+      from: 'workspace',
+      resumeId: workspace.currentResumeId,
+      current: workspace.currentResume?.templateId,
+    },
+  })
+}
+
+async function clearTemplateQuery(): Promise<void> {
+  const nextQuery = { ...route.query }
+  delete nextQuery.template
+  delete nextQuery.resumeId
+  delete nextQuery.from
+  delete nextQuery.current
+
+  await router.replace({
+    name: 'workspace',
+    query: nextQuery,
+  })
+}
+
+async function applyTemplateFromRoute(): Promise<void> {
+  const template = route.query.template
+  if (!isResumeTemplateId(template)) {
+    return
+  }
+
+  if (workspace.currentResume?.templateId !== template) {
+    await workspace.updateTemplate(template)
+    workspace.setNotice(`已切换到「${findResumeTemplate(template).label}」模板，可继续编辑内容。`)
+  }
+
+  await clearTemplateQuery()
+}
+
 async function syncStructuredPreview(): Promise<void> {
   await workspace.updatePreviewMode('source-html-sync')
-  workspace.setNotice('已切换到上传模板同步预览，右侧会按你的 HTML 模板实时更新。')
+  workspace.setNotice('已切换到模板同步预览，右侧会按你导入的 HTML 模板实时更新。')
 }
 
 async function handlePhotoFile(event: Event): Promise<void> {
@@ -131,7 +237,7 @@ async function handleExport(format: ExportFormat): Promise<void> {
       @sync-preview="syncStructuredPreview"
       @export-format="handleExport"
       @import-file="handleImportFile"
-      @update-template="workspace.updateTemplate"
+      @open-template-gallery="openTemplateGallery"
       @update-preview-mode="workspace.updatePreviewMode"
       @set-mobile-pane="workspace.setMobilePane"
       @clear-workspace="clearAllLocalData"
@@ -176,12 +282,11 @@ async function handleExport(format: ExportFormat): Promise<void> {
 
     <div v-else class="flex min-h-[60vh] items-center justify-center text-stone-500">正在初始化本地工作台...</div>
 
-    <div
-      v-if="workspace.notice"
-      class="fixed bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-full bg-stone-900 px-4 py-2 text-sm text-white shadow-lg"
-    >
-      {{ workspace.notice }}
-    </div>
+    <Transition name="workspace-notice-fade">
+      <div v-if="workspace.notice" class="workspace-notice">
+        {{ workspace.notice }}
+      </div>
+    </Transition>
 
     <input
       ref="photoInputRef"

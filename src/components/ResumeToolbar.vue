@@ -1,8 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { ResumeDocument, ResumePreviewMode, ResumeTemplateId } from '@/domain/types'
+import {
+  ChevronDown,
+  Download,
+  Eye,
+  FileInput,
+  LayoutTemplate,
+  MonitorSmartphone,
+  Plus,
+  Printer,
+  RotateCcw,
+  Trash2,
+  Upload,
+} from 'lucide-vue-next'
+import type { ResumeDocument, ResumePreviewMode } from '@/domain/types'
 import BrandMark from '@/components/BrandMark.vue'
-import { ChevronDown, Download, Eye, FileInput, MonitorSmartphone, Plus, Printer, RotateCcw, Trash2, Upload } from 'lucide-vue-next'
 
 interface ResumeOption {
   id: string
@@ -29,7 +41,7 @@ const emit = defineEmits<{
   (event: 'sync-preview'): void
   (event: 'export-format', format: ExportFormat): void
   (event: 'import-file', file: File): void
-  (event: 'update-template', templateId: ResumeTemplateId): void
+  (event: 'open-template-gallery'): void
   (event: 'update-preview-mode', previewMode: ResumePreviewMode): void
   (event: 'set-mobile-pane', pane: 'editor' | 'preview'): void
   (event: 'clear-workspace'): void
@@ -42,12 +54,9 @@ const titleModel = computed({
   set: (value: string) => emit('rename-resume', value),
 })
 
-const templateOptions: Array<{ id: ResumeTemplateId; label: string }> = [
-  { id: 'minimal', label: '极简' },
-  { id: 'modern', label: '现代' },
-  { id: 'classic-sidebar', label: '侧栏' },
-  { id: 'classic-blue', label: '蓝线' },
-]
+const templateButtonTitle = computed(() =>
+  props.currentResume?.previewMode === 'source-html' ? '原模板预览模式下不可切换站内模板。' : '',
+)
 
 function openImport(): void {
   importInputRef.value?.click()
@@ -67,10 +76,10 @@ function handleFileChange(event: Event): void {
 
 <template>
   <header class="sticky top-0 z-20 border-b border-stone-200/80 bg-stone-50/92 backdrop-blur">
-    <div class="mx-auto flex max-w-[1800px] flex-col gap-3 px-4 py-3 lg:px-6">
-      <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div class="flex flex-1 flex-col gap-3 md:flex-row md:items-center">
-          <div class="flex items-center gap-3 pr-2">
+    <div class="mx-auto flex max-w-[1800px] flex-col gap-2 px-4 py-2.5 lg:px-6">
+      <div class="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+        <div class="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
+          <RouterLink :to="{ name: 'home' }" class="flex items-center gap-3 pr-2 transition hover:opacity-85">
             <div class="grid h-10 w-10 place-items-center rounded-[18px] bg-stone-900 shadow-[0_10px_26px_rgba(15,23,42,0.12)]">
               <BrandMark :size="24" />
             </div>
@@ -78,7 +87,7 @@ function handleFileChange(event: Event): void {
               <div class="text-sm font-semibold tracking-[0.18em] text-stone-900 uppercase">OneResume</div>
               <div class="text-xs text-stone-500">本地优先简历工作台</div>
             </div>
-          </div>
+          </RouterLink>
 
           <div class="flex flex-1 flex-col gap-2 md:flex-row md:items-center">
             <select
@@ -104,6 +113,15 @@ function handleFileChange(event: Event): void {
           <button class="toolbar-button toolbar-button--solid" @click="emit('create-resume')">
             <Plus class="h-4 w-4" />
             新建
+          </button>
+          <button
+            class="toolbar-button toolbar-button--feature"
+            :disabled="currentResume?.previewMode === 'source-html'"
+            :title="templateButtonTitle"
+            @click="emit('open-template-gallery')"
+          >
+            <LayoutTemplate class="h-4 w-4" />
+            模板库
           </button>
           <button class="toolbar-button" @click="openImport">
             <FileInput class="h-4 w-4" />
@@ -139,6 +157,7 @@ function handleFileChange(event: Event): void {
             <RotateCcw class="h-4 w-4" />
             重置
           </button>
+          <button class="toolbar-button" @click="emit('clear-workspace')">清空本地数据</button>
           <button class="toolbar-button toolbar-button--danger" @click="emit('delete-resume')">
             <Trash2 class="h-4 w-4" />
             删除
@@ -180,20 +199,6 @@ function handleFileChange(event: Event): void {
             </button>
           </template>
 
-          <span class="text-xs font-semibold tracking-[0.24em] text-stone-500 uppercase">模板</span>
-          <button
-            v-for="template in templateOptions"
-            :key="template.id"
-            class="toolbar-chip"
-            :class="{ 'toolbar-chip--active': currentResume?.templateId === template.id }"
-            :disabled="currentResume?.previewMode === 'source-html'"
-            :title="currentResume?.previewMode === 'source-html' ? '原模板预览模式下不使用站内模板' : ''"
-            @click="emit('update-template', template.id)"
-          >
-            {{ template.label }}
-          </button>
-
-          <button class="toolbar-chip" @click="emit('clear-workspace')">清空本地数据</button>
           <span v-if="saveError" class="rounded-full bg-rose-50 px-3 py-1 text-xs text-rose-700">
             {{ saveError }}
           </span>
