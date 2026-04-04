@@ -1,35 +1,55 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+interface SponsorEntry {
+  name: string
+  date: string
+  message?: string
+}
 
-// ==========================================
-// 在这里自行添加或调整赞助人名单
-// ==========================================
-const sponsors = ref([
-  // 示例格式，您可以直接修改内容或新增行
-  { name: 'zzz', message: '我将全推给我班的同学', date: '2026-04' },
-])
+const sponsors: SponsorEntry[] = [
+  {
+    name: 'zzz',
+    message: '我将全力推荐给我班的同学',
+    date: '2026-04',
+  },
+]
 </script>
 
 <template>
-  <section class="py-20 px-6 max-w-6xl mx-auto w-full relative z-10" v-if="sponsors.length > 0">
-    <div class="landing-section__heading text-center">
-      <p class="landing-section__eyebrow">特别鸣谢</p>
-      <h2 class="landing-section__title">项目赞助者</h2>
-      <p class="mt-4 text-sm text-stone-500 max-w-xl mx-auto">
-        感谢以下朋友对 OneResume 开源项目的支持，你们的鼓励是项目持续迭代的动力。
-      </p>
-    </div>
-
-    <div class="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-      <div v-for="(sponsor, index) in sponsors" :key="index" class="bg-white border border-stone-200 rounded-2xl p-6 shadow-sm transition hover:shadow-md hover:border-stone-300">
-        <div class="flex justify-between items-center mb-3">
-          <span class="font-medium text-stone-900">{{ sponsor.name }}</span>
-          <span class="text-xs text-stone-400 tabular-nums">{{ sponsor.date }}</span>
-        </div>
-        <p v-if="sponsor.message" class="text-sm text-stone-600 leading-relaxed italic">
-          "{{ sponsor.message }}"
+  <section v-if="sponsors.length > 0" class="landing-section landing-section--sponsors">
+    <div class="landing-sponsor__intro">
+      <div class="landing-section__heading">
+        <p class="landing-section__eyebrow">特别鸣谢</p>
+        <h2 class="landing-section__title">感谢正在支持 OneResume 的朋友</h2>
+        <p class="landing-sponsor__description">
+          这份名单会持续更新。每一次赞助和推荐，都会直接变成这个项目继续打磨与迭代的动力。
         </p>
       </div>
+
+      <div class="landing-sponsor__summary" aria-label="赞助概览">
+        <span class="landing-sponsor__summary-value">{{ sponsors.length }}</span>
+        <span class="landing-sponsor__summary-label">位赞助者</span>
+        <p class="landing-sponsor__summary-note">感谢你们为开源项目留出的一份支持。</p>
+      </div>
+    </div>
+
+    <div class="landing-sponsor__list">
+      <article
+        v-for="(sponsor, index) in sponsors"
+        :key="`${sponsor.name}-${index}`"
+        class="landing-sponsor-card"
+      >
+        <div class="landing-sponsor-card__meta">
+          <div>
+            <p class="landing-sponsor-card__name">{{ sponsor.name }}</p>
+            <p class="landing-sponsor-card__tag">支持 OneResume</p>
+          </div>
+          <span class="landing-sponsor-card__date">{{ sponsor.date }}</span>
+        </div>
+
+        <p v-if="sponsor.message" class="landing-sponsor-card__message">
+          {{ sponsor.message }}
+        </p>
+      </article>
     </div>
   </section>
 </template>

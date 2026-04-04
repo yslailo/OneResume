@@ -19,8 +19,8 @@ import LandingSponsorSection from '@/components/landing/LandingSponsorSection.vu
         <LandingHeroSection />
         <LandingFeatureGrid />
         <LandingWorkflowSection />
-        <LandingCtaSection />
         <LandingSponsorSection />
+        <LandingCtaSection />
       </main>
       <LandingFooter />
     </div>

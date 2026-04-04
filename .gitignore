@@ -41,6 +41,11 @@ Desktop.ini
 docs/*
 !docs/progress.md
 
+# Local process artifacts
+/process
+/process/
+/process.*
+
 # Local-only tests
 *.test.ts
 !src/components/ResumeDocument.test.ts

@@ -265,6 +265,62 @@ a {
   @apply pb-2;
 }
 
+.landing-section--sponsors {
+  @apply gap-6 bg-[linear-gradient(180deg,rgba(250,250,249,0.94),rgba(245,245,244,0.78))];
+}
+
+.landing-sponsor__intro {
+  @apply flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between;
+}
+
+.landing-sponsor__description {
+  @apply mt-1 mb-0 max-w-2xl text-sm leading-7 text-stone-600;
+}
+
+.landing-sponsor__summary {
+  @apply flex min-w-[188px] flex-col rounded-[24px] border border-stone-200 bg-white px-5 py-4 shadow-sm;
+}
+
+.landing-sponsor__summary-value {
+  @apply text-3xl font-semibold tracking-[-0.05em] text-stone-950;
+}
+
+.landing-sponsor__summary-label {
+  @apply mt-1 text-sm font-medium text-stone-500;
+}
+
+.landing-sponsor__summary-note {
+  @apply mt-3 mb-0 text-xs leading-6 text-stone-500;
+}
+
+.landing-sponsor__list {
+  @apply grid gap-3 md:grid-cols-2 xl:grid-cols-3;
+}
+
+.landing-sponsor-card {
+  @apply rounded-[26px] border border-stone-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-[0_18px_40px_rgba(28,25,23,0.06)];
+}
+
+.landing-sponsor-card__meta {
+  @apply flex items-start justify-between gap-4;
+}
+
+.landing-sponsor-card__name {
+  @apply m-0 text-base font-semibold text-stone-900;
+}
+
+.landing-sponsor-card__tag {
+  @apply mt-1 mb-0 text-xs tracking-[0.14em] text-stone-400 uppercase;
+}
+
+.landing-sponsor-card__date {
+  @apply inline-flex rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs text-stone-500;
+}
+
+.landing-sponsor-card__message {
+  @apply mt-5 mb-0 border-l border-stone-200 pl-4 text-sm leading-7 text-stone-600;
+}
+
 .landing-cta__card {
   @apply flex flex-col items-center rounded-[36px] border border-stone-200 bg-stone-950 px-6 py-12 text-center text-white shadow-[0_26px_70px_rgba(28,25,23,0.14)] sm:px-10 sm:py-16;
 }
