@@ -37,6 +37,12 @@ export default defineConfig({
           if (id.includes('node_modules/idb')) {
             return 'storage'
           }
+          if (id.includes('node_modules/@tiptap') || id.includes('node_modules/prosemirror')) {
+            return 'editor'
+          }
+          if (id.includes('node_modules/pdfjs-dist')) {
+            return 'pdfjs'
+          }
           return undefined
         },
       },

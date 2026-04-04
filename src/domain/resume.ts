@@ -431,28 +431,94 @@ export function sectionLabelForType(type: SectionType): string {
 }
 
 export function normalizeSectionHeading(heading: string): SectionType | null {
-  const normalized = heading.trim().toLowerCase()
+  const normalized = heading.trim().toLowerCase().replace(/[：:]/g, '')
   const mapping: Record<string, SectionType> = {
+    // 基础信息（导入时通常不作为 section，但如果出现作为 custom）
     basics: 'custom',
     'basic info': 'custom',
     个人信息: 'custom',
+    基本信息: 'custom',
+
+    // 教育
     教育背景: 'education',
+    教育经历: 'education',
+    学历: 'education',
     education: 'education',
+    'education background': 'education',
+
+    // 工作
     工作经历: 'work',
+    工作经验: 'work',
     实习经历: 'work',
     实习经验: 'work',
+    职业经历: 'work',
     experience: 'work',
+    'work experience': 'work',
+    'professional experience': 'work',
     work: 'work',
+    internship: 'work',
+
+    // 项目
     项目经历: 'project',
     项目经验: 'project',
+    科研经历: 'project',
+    科研经验: 'project',
+    研究经历: 'project',
+    学术经历: 'project',
     projects: 'project',
     project: 'project',
+    'project experience': 'project',
+    research: 'project',
+
+    // 技能
     专业技能: 'skills',
     技能特长: 'skills',
+    技能: 'skills',
+    个人技能: 'skills',
+    技术栈: 'skills',
+    技术能力: 'skills',
     skills: 'skills',
+    'technical skills': 'skills',
+    'core competencies': 'skills',
+    competencies: 'skills',
+
+    // 自我评价 → skills（富文本内容）
+    自我评价: 'skills',
+    个人评价: 'skills',
+    自我介绍: 'skills',
+    个人总结: 'skills',
+    summary: 'skills',
+    profile: 'skills',
+
+    // 自定义
     自定义模块: 'custom',
     附加信息: 'custom',
     custom: 'custom',
+    获奖经历: 'custom',
+    荣誉奖项: 'custom',
+    奖项荣誉: 'custom',
+    获奖情况: 'custom',
+    荣誉: 'custom',
+    证书: 'custom',
+    资格证书: 'custom',
+    语言能力: 'custom',
+    语言: 'custom',
+    兴趣爱好: 'custom',
+    社会实践: 'custom',
+    校园经历: 'custom',
+    社团经历: 'custom',
+    志愿服务: 'custom',
+    其他: 'custom',
+    其他信息: 'custom',
+    awards: 'custom',
+    honors: 'custom',
+    certifications: 'custom',
+    languages: 'custom',
+    interests: 'custom',
+    activities: 'custom',
+    volunteer: 'custom',
+    publications: 'custom',
+    additional: 'custom',
   }
 
   return mapping[normalized] ?? null

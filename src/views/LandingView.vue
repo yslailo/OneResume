@@ -5,6 +5,7 @@ import LandingFooter from '@/components/landing/LandingFooter.vue'
 import LandingHeader from '@/components/landing/LandingHeader.vue'
 import LandingHeroSection from '@/components/landing/LandingHeroSection.vue'
 import LandingWorkflowSection from '@/components/landing/LandingWorkflowSection.vue'
+import LandingSponsorSection from '@/components/landing/LandingSponsorSection.vue'
 </script>
 
 <template>
@@ -19,6 +20,7 @@ import LandingWorkflowSection from '@/components/landing/LandingWorkflowSection.
         <LandingFeatureGrid />
         <LandingWorkflowSection />
         <LandingCtaSection />
+        <LandingSponsorSection />
       </main>
       <LandingFooter />
     </div>

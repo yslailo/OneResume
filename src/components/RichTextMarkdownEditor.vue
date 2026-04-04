@@ -246,10 +246,19 @@ function saveExpanded(): void {
     }
   })
 }
+
+function focusInlineEditor(event: MouseEvent): void {
+  const target = event.target as HTMLElement
+  // 如果点击的是工具栏按钮、放大按钮或已经在编辑器内部，不做额外处理
+  if (target.closest('.editor-toolbar') || target.closest('.ProseMirror')) {
+    return
+  }
+  editor.value?.commands.focus()
+}
 </script>
 
 <template>
-  <div class="editor-richtext">
+  <div class="editor-richtext" @click="focusInlineEditor">
     <div class="editor-toolbar">
       <div class="editor-toolbar__actions">
         <button
